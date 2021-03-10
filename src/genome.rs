@@ -2,11 +2,11 @@ use std::collections::HashSet;
 
 use crate::{
     genes::{Activation, Connection, Genes, IdGenerator, Node},
-    mutations::Mutations,
-    parameters::Parameters,
+    parameters::Structure,
     rng::GenomeRng,
 };
 
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -19,13 +19,13 @@ pub struct Genome {
 }
 
 impl Genome {
-    pub fn new(id_gen: &mut IdGenerator, parameters: &Parameters) -> Self {
+    pub fn new(id_gen: &mut IdGenerator, structure: &Structure) -> Self {
         Genome {
-            inputs: (0..parameters.structure.inputs)
+            inputs: (0..structure.inputs)
                 .map(|_| Node::new(id_gen.next_id(), Activation::Linear))
                 .collect(),
-            outputs: (0..parameters.structure.outputs)
-                .map(|_| Node::new(id_gen.next_id(), parameters.structure.outputs_activation))
+            outputs: (0..structure.outputs)
+                .map(|_| Node::new(id_gen.next_id(), structure.outputs_activation))
                 .collect(),
             ..Default::default()
         }
@@ -38,11 +38,12 @@ impl Genome {
             .chain(self.outputs.iter())
     }
 
-    pub fn init(&mut self, rng: &mut GenomeRng, parameters: &Parameters) {
-        for input in self.inputs.iterate_with_random_offset(rng).take(
-            (parameters.structure.inputs_connected_percent * parameters.structure.inputs as f64)
-                .ceil() as usize,
-        ) {
+    pub fn init(&mut self, rng: &mut GenomeRng, structure: &Structure) {
+        for input in self
+            .inputs
+            .iterate_with_random_offset(rng)
+            .take((structure.inputs_connected_percent * structure.inputs as f64).ceil() as usize)
+        {
             // connect to every output
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
@@ -62,11 +63,9 @@ impl Genome {
         self.feed_forward.is_empty() && self.recurrent.is_empty()
     }
 
-    pub fn cross_in(&self, other: &Self, rng: &mut GenomeRng) -> Self {
+    pub fn cross_in(&self, other: &Self, rng: &mut impl Rng) -> Self {
         let feed_forward = self.feed_forward.cross_in(&other.feed_forward, rng);
-
         let recurrent = self.recurrent.cross_in(&other.recurrent, rng);
-
         let hidden = self.hidden.cross_in(&other.hidden, rng);
 
         Genome {
@@ -76,17 +75,6 @@ impl Genome {
             // use input and outputs from fitter, but they should be identical with weaker
             inputs: self.inputs.clone(),
             outputs: self.outputs.clone(),
-        }
-    }
-
-    pub fn mutate(
-        &mut self,
-        rng: &mut GenomeRng,
-        id_gen: &mut IdGenerator,
-        mutations: &[Mutations],
-    ) {
-        for mutation in mutations {
-            mutation.mutate(self, rng, id_gen);
         }
     }
 

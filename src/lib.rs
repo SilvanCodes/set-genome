@@ -1,8 +1,10 @@
-use genes::IdGenerator;
-use genome::Genome;
-use mutations::Mutations;
-use parameters::Parameters;
-use rng::GenomeRng;
+use genes::Connection;
+
+pub use genes::{Activation, IdGenerator};
+pub use genome::Genome;
+pub use mutations::Mutations;
+pub use parameters::Parameters;
+pub use rng::GenomeRng;
 
 mod favannat_impl;
 mod genes;
@@ -12,9 +14,9 @@ mod parameters;
 mod rng;
 
 pub struct GenomeContext {
-    id_gen: IdGenerator,
-    rng: GenomeRng,
-    parameters: Parameters,
+    pub id_gen: IdGenerator,
+    pub rng: GenomeRng,
+    pub parameters: Parameters,
     initialized_genome: Genome,
     uninitialized_genome: Genome,
 }
@@ -25,12 +27,13 @@ impl GenomeContext {
         let mut rng = GenomeRng::new(
             parameters.seed.unwrap_or(42),
             parameters.structure.weight_std_dev,
+            parameters.structure.weight_cap,
         );
 
-        let uninitialized_genome = Genome::new(&mut id_gen, &parameters);
+        let uninitialized_genome = Genome::new(&mut id_gen, &parameters.structure);
 
         let mut initialized_genome = uninitialized_genome.clone();
-        initialized_genome.init(&mut rng, &parameters);
+        initialized_genome.init(&mut rng, &parameters.structure);
 
         Self {
             id_gen,
@@ -57,12 +60,31 @@ impl Default for GenomeContext {
 }
 
 impl Genome {
+    pub fn init_with_context(&mut self, context: &mut GenomeContext) {
+        for input in self
+            .inputs
+            .iterate_with_random_offset(&mut context.rng)
+            .take(
+                (context.parameters.structure.inputs_connected_percent
+                    * context.parameters.structure.inputs as f64)
+                    .ceil() as usize,
+            )
+        {
+            // connect to every output
+            for output in self.outputs.iter() {
+                assert!(self.feed_forward.insert(Connection::new(
+                    input.id,
+                    context.rng.weight_perturbation(),
+                    output.id
+                )));
+            }
+        }
+    }
+
     pub fn mutate_with_context(&mut self, context: &mut GenomeContext) {
-        self.mutate(
-            &mut context.rng,
-            &mut context.id_gen,
-            &context.parameters.mutations,
-        )
+        for mutation in &context.parameters.mutations {
+            mutation.mutate(self, &mut context.rng, &mut context.id_gen);
+        }
     }
 
     pub fn add_node_with_context(&mut self, context: &mut GenomeContext) {
@@ -104,12 +126,10 @@ impl Genome {
     pub fn change_weights_with_context(&mut self, context: &mut GenomeContext) {
         for mutation in &context.parameters.mutations {
             if let Mutations::ChangeWeights {
-                percent_perturbed,
-                weight_cap,
-                ..
+                percent_perturbed, ..
             } = *mutation
             {
-                Mutations::change_weights(percent_perturbed, weight_cap, self, &mut context.rng)
+                Mutations::change_weights(percent_perturbed, self, &mut context.rng)
             }
         }
     }
