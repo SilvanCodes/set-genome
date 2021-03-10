@@ -8,7 +8,10 @@ mod nodes;
 
 pub use connections::Connection;
 pub use id::{id_generator::IdGenerator, Id};
-pub use nodes::{activations::Activation, Node};
+pub use nodes::{
+    activations::{self, Activation},
+    Node,
+};
 
 pub trait Gene: Eq + Hash {}
 

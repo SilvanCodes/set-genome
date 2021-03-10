@@ -2,14 +2,11 @@ use std::collections::HashSet;
 
 use crate::{
     genes::{Activation, Connection, Genes, IdGenerator, Node},
-    parameters::{Mutations, Parameters},
+    mutations::Mutations,
+    parameters::Parameters,
     rng::GenomeRng,
 };
 
-use rand::{
-    prelude::{IteratorRandom, SliceRandom},
-    Rng,
-};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -86,214 +83,14 @@ impl Genome {
         &mut self,
         rng: &mut GenomeRng,
         id_gen: &mut IdGenerator,
-        parameters: &Parameters,
+        mutations: &[Mutations],
     ) {
-        // mutate weigths
-        if rng.gamble(parameters.mutations.chance_weight_perturbation) {
-            self.change_weights(rng, parameters);
-        }
-
-        // mutate connection gene
-        if rng.gamble(parameters.mutations.chance_connection) {
-            self.add_connection(rng, parameters).unwrap_or_default();
-        }
-
-        // mutate node gene
-        if rng.gamble(parameters.mutations.chance_node) {
-            self.add_node(rng, id_gen, parameters);
-        }
-
-        // change some activation
-        if rng.gamble(parameters.mutations.chance_activation_change) {
-            self.change_activation(rng, parameters);
+        for mutation in mutations {
+            mutation.mutate(self, rng, id_gen);
         }
     }
 
-    pub fn change_weights(&mut self, rng: &mut GenomeRng, parameters: &Parameters) {
-        let Mutations {
-            weight_perturbation_percent,
-            weight_perturbation_cap,
-            ..
-        } = parameters.mutations;
-
-        let change_feed_forward_amount =
-            (weight_perturbation_percent * self.feed_forward.len() as f64).ceil() as usize;
-        let change_recurrent_amount =
-            (weight_perturbation_percent * self.recurrent.len() as f64).ceil() as usize;
-
-        self.feed_forward = self
-            .feed_forward
-            .drain_into_random(rng)
-            .enumerate()
-            .map(|(index, mut connection)| {
-                if index < change_feed_forward_amount {
-                    let mut perturbation = rng.weight_perturbation();
-                    if (connection.weight + perturbation) > weight_perturbation_cap
-                        || (connection.weight + perturbation) < -weight_perturbation_cap
-                    {
-                        perturbation = -perturbation;
-                    }
-                    connection.weight += perturbation;
-                }
-                connection
-            })
-            .collect();
-
-        self.recurrent = self
-            .recurrent
-            .drain_into_random(rng)
-            .enumerate()
-            .map(|(index, mut connection)| {
-                if index < change_recurrent_amount {
-                    let mut perturbation = rng.weight_perturbation();
-                    if (connection.weight + perturbation) > weight_perturbation_cap
-                        || (connection.weight + perturbation) < -weight_perturbation_cap
-                    {
-                        perturbation = -perturbation;
-                    }
-                    connection.weight += perturbation;
-                }
-                connection
-            })
-            .collect();
-    }
-
-    pub fn change_activation(&mut self, rng: &mut GenomeRng, parameters: &Parameters) {
-        if let Some(node) = self.hidden.random(rng) {
-            let updated = Node::new(
-                node.id,
-                parameters
-                    .structure
-                    .hidden_activations
-                    .iter()
-                    .filter(|&&activation| activation != node.activation)
-                    .choose(rng)
-                    .cloned()
-                    .unwrap_or(node.activation),
-            );
-
-            self.hidden.replace(updated);
-        }
-    }
-
-    pub fn add_node(
-        &mut self,
-        rng: &mut GenomeRng,
-        id_gen: &mut IdGenerator,
-        parameters: &Parameters,
-    ) {
-        // select an connection gene and split
-        let mut random_connection = self.feed_forward.random(rng).cloned().unwrap();
-
-        let id = id_gen
-            .cached_id_iter(random_connection.id())
-            .find(|&id| {
-                self.hidden
-                    .get(&Node::new(id, Activation::Linear))
-                    .is_none()
-            })
-            .unwrap();
-
-        // construct new node gene
-        let new_node = Node::new(
-            id,
-            parameters
-                .structure
-                .hidden_activations
-                .choose(rng)
-                .cloned()
-                .unwrap(),
-        );
-
-        // insert new connection pointing to new node
-        assert!(self.feed_forward.insert(Connection::new(
-            random_connection.input,
-            1.0,
-            new_node.id,
-        )));
-        // insert new connection pointing from new node
-        assert!(self.feed_forward.insert(Connection::new(
-            new_node.id,
-            random_connection.weight,
-            random_connection.output,
-        )));
-        // insert new node into genome
-        assert!(self.hidden.insert(new_node));
-
-        // update weight to zero to 'deactivate' connnection
-        random_connection.weight = 0.0;
-        self.feed_forward.replace(random_connection);
-    }
-
-    pub fn add_connection(
-        &mut self,
-        rng: &mut GenomeRng,
-        parameters: &Parameters,
-    ) -> Result<(), &'static str> {
-        let is_recurrent = rng.gamble(parameters.mutations.chance_connection_recurrent);
-
-        let start_node_iterator = self
-            .inputs
-            .iter()
-            // .iterate_unwrapped()
-            .chain(self.hidden.iter() /* .iterate_unwrapped() */);
-
-        let end_node_iterator = self
-            .hidden
-            .iter()
-            // .iterate_unwrapped()
-            .chain(self.outputs.iter() /* .iterate_unwrapped() */);
-
-        for start_node in start_node_iterator
-            // make iterator wrap
-            .cycle()
-            // randomly offset into the iterator to choose any node
-            .skip(
-                (rng.gen::<f64>() * (self.inputs.len() + self.hidden.len()) as f64).floor()
-                    as usize,
-            )
-            // just loop every value once
-            .take(self.inputs.len() + self.hidden.len())
-        {
-            if let Some(end_node) = end_node_iterator.clone().find(|&end_node| {
-                end_node != start_node
-                    && !self.are_connected(&start_node, end_node, is_recurrent)
-                    && (is_recurrent || !self.would_form_cycle(start_node, end_node))
-            }) {
-                if is_recurrent {
-                    assert!(self.recurrent.insert(Connection::new(
-                        start_node.id,
-                        rng.weight_perturbation(),
-                        end_node.id,
-                    )));
-                } else {
-                    // add new feed-forward connection
-                    assert!(self.feed_forward.insert(Connection::new(
-                        start_node.id,
-                        rng.weight_perturbation(),
-                        end_node.id,
-                    )));
-                }
-                return Ok(());
-            }
-            // no possible connection end present
-        }
-        Err("no connection possible")
-    }
-
-    // check if to nodes are connected
-    fn are_connected(&self, start_node: &Node, end_node: &Node, recurrent: bool) -> bool {
-        if recurrent {
-            self.recurrent
-                .contains(&Connection::new(start_node.id, 0.0, end_node.id))
-        } else {
-            self.feed_forward
-                .contains(&Connection::new(start_node.id, 0.0, end_node.id))
-        }
-    }
-
-    // can only operate when no cycles present yet, which is assumed
-    fn would_form_cycle(&self, start_node: &Node, end_node: &Node) -> bool {
+    pub fn would_form_cycle(&self, start_node: &Node, end_node: &Node) -> bool {
         let mut to_visit = vec![end_node.id];
         let mut visited = HashSet::new();
 
@@ -397,110 +194,15 @@ impl Genome {
 mod tests {
     use super::Genome;
     use crate::{
-        genes::{Activation, Connection, Genes, Id, IdGenerator, Node},
-        parameters::Parameters,
-        rng::GenomeRng,
+        genes::{Activation, Connection, Genes, Id, Node},
         GenomeContext,
     };
-
-    #[test]
-    fn change_activation() {
-        // create id book-keeping
-        let mut id_gen = IdGenerator::default();
-
-        let parameters: Parameters = Default::default();
-
-        // create randomn source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
-
-        let mut genome = Genome::new(&mut id_gen, &parameters);
-
-        genome.init(&mut rng, &parameters);
-
-        genome.add_node(&mut rng, &mut id_gen, &parameters);
-
-        let old_activation = genome.hidden.iter().next().unwrap().activation;
-
-        genome.change_activation(&mut rng, &parameters);
-
-        assert_ne!(
-            genome.hidden.iter().next().unwrap().activation,
-            old_activation
-        );
-    }
-
-    #[test]
-    fn add_random_connection() {
-        // create id book-keeping
-        let mut id_gen = IdGenerator::default();
-
-        let parameters: Parameters = Default::default();
-
-        // create randomn source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
-
-        let mut genome = Genome::new(&mut id_gen, &parameters);
-
-        let result = genome.add_connection(&mut rng, &parameters).is_ok();
-
-        println!("{:?}", genome);
-
-        assert_eq!(result, true);
-        assert_eq!(genome.feed_forward.len(), 1);
-    }
-
-    #[test]
-    fn dont_add_same_connection_twice() {
-        // create id book-keeping
-        let mut id_gen = IdGenerator::default();
-
-        let parameters: Parameters = Default::default();
-
-        // create randomn source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
-
-        let mut genome = Genome::new(&mut id_gen, &parameters);
-
-        let result_0 = genome.add_connection(&mut rng, &parameters).is_ok();
-        if let Err(message) = genome.add_connection(&mut rng, &parameters) {
-            assert_eq!(message, "no connection possible");
-        } else {
-            // assert!(false);
-            unreachable!()
-        }
-
-        println!("{:?}", genome);
-
-        assert_eq!(result_0, true);
-        assert_eq!(genome.feed_forward.len(), 1);
-    }
-
-    #[test]
-    fn add_random_node() {
-        // create id book-keeping
-        let mut id_gen = IdGenerator::default();
-
-        let parameters: Parameters = Default::default();
-
-        // create randomn source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
-
-        let mut genome = Genome::new(&mut id_gen, &parameters);
-
-        genome.init(&mut rng, &parameters);
-        genome.add_node(&mut rng, &mut id_gen, &parameters);
-
-        println!("{:?}", genome);
-
-        assert_eq!(genome.feed_forward.len(), 3);
-    }
 
     #[test]
     fn crossover() {
         let mut gc = GenomeContext::default();
 
         let mut genome_0 = gc.initialized_genome();
-
         let mut genome_1 = gc.initialized_genome();
 
         // mutate genome_0
@@ -510,13 +212,8 @@ mod tests {
         genome_1.add_node_with_context(&mut gc);
         genome_1.add_node_with_context(&mut gc);
 
-        println!("genome_0 {:?}", genome_0);
-        println!("genome_1 {:?}", genome_1);
-
         // shorter genome is fitter genome
         let offspring = genome_0.cross_in(&genome_1, &mut gc.rng);
-
-        println!("offspring {:?}", offspring);
 
         assert_eq!(offspring.hidden.len(), 1);
         assert_eq!(offspring.feed_forward.len(), 3);
@@ -524,59 +221,31 @@ mod tests {
 
     #[test]
     fn detect_no_cycle() {
-        // create id book-keeping
-        let mut id_gen = IdGenerator::default();
+        let gc = GenomeContext::default();
 
-        let parameters: Parameters = Default::default();
+        let genome = gc.initialized_genome();
 
-        // create randomn source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
+        let input = genome.inputs.iter().next().unwrap();
+        let output = genome.outputs.iter().next().unwrap();
 
-        let mut genome_0 = Genome::new(&mut id_gen, &parameters);
-
-        genome_0.init(&mut rng, &parameters);
-
-        let input = genome_0.inputs.iter().next().unwrap();
-        let output = genome_0.outputs.iter().next().unwrap();
-
-        let result = genome_0.would_form_cycle(&input, &output);
-
-        assert!(!result);
+        assert!(!genome.would_form_cycle(&input, &output));
     }
 
     #[test]
     fn detect_cycle() {
-        // create id book-keeping
-        let mut id_gen = IdGenerator::default();
+        let gc = GenomeContext::default();
 
-        let parameters: Parameters = Default::default();
+        let genome = gc.initialized_genome();
 
-        // create randomn source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
+        let input = genome.inputs.iter().next().unwrap();
+        let output = genome.outputs.iter().next().unwrap();
 
-        let mut genome_0 = Genome::new(&mut id_gen, &parameters);
-
-        genome_0.init(&mut rng, &parameters);
-
-        // mutate genome_0
-        genome_0.add_node(&mut rng, &mut id_gen, &parameters);
-
-        let input = genome_0.inputs.iter().next().unwrap();
-        let output = genome_0.outputs.iter().next().unwrap();
-
-        let result = genome_0.would_form_cycle(&output, &input);
-
-        println!("{:?}", genome_0);
-
-        assert!(result);
+        assert!(genome.would_form_cycle(&output, &input));
     }
 
     #[test]
     fn crossover_no_cycle() {
-        let parameters: Parameters = Default::default();
-
-        // create random source
-        let mut rng = GenomeRng::new(42, parameters.mutations.weight_perturbation_std_dev);
+        let mut gc = GenomeContext::default();
 
         // assumption:
         // crossover of equal fitness genomes should not produce cycles
@@ -632,16 +301,10 @@ mod tests {
             .feed_forward
             .insert(Connection::new(Id(3), 1.0, Id(2)));
 
-        let offspring = genome_0.cross_in(&genome_1, &mut rng);
-
-        println!("offspring {:?}", offspring);
+        let offspring = genome_0.cross_in(&genome_1, &mut gc.rng);
 
         for connection0 in offspring.feed_forward.iter() {
             for connection1 in offspring.feed_forward.iter() {
-                println!(
-                    "{:?}->{:?}, {:?}->{:?}",
-                    connection0.input, connection0.output, connection1.input, connection1.output
-                );
                 assert!(
                     !(connection0.input == connection1.output
                         && connection0.output == connection1.input)
@@ -680,7 +343,7 @@ mod tests {
         let delta =
             Genome::compatability_distance(&genome_0, &genome_1, 1.0, 0.4, 0.0, f64::INFINITY).0;
 
-        assert!(delta < f64::EPSILON);
+        assert!(delta.abs() < f64::EPSILON);
     }
 
     #[test]
@@ -713,9 +376,6 @@ mod tests {
         genome_1
             .feed_forward
             .replace(Connection::new(Id(0), 2.0, Id(1)));
-
-        println!("genome_0: {:?}", genome_0);
-        println!("genome_1: {:?}", genome_1);
 
         let delta = Genome::compatability_distance(&genome_0, &genome_1, 0.0, 2.0, 0.0, 2.0).0;
 
@@ -756,9 +416,6 @@ mod tests {
         genome_1
             .feed_forward
             .insert(Connection::new(Id(2), 2.0, Id(1)));
-
-        println!("genome_0: {:?}", genome_0);
-        println!("genome_1: {:?}", genome_1);
 
         let delta =
             Genome::compatability_distance(&genome_0, &genome_1, 2.0, 0.0, 0.0, f64::INFINITY).0;

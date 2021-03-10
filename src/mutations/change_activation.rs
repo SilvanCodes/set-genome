@@ -1,0 +1,54 @@
+use rand::prelude::IteratorRandom;
+
+use crate::{
+    genes::{Activation, Node},
+    genome::Genome,
+    rng::GenomeRng,
+};
+
+use super::Mutations;
+
+impl Mutations {
+    pub fn change_activation(
+        activation_pool: &[Activation],
+        genome: &mut Genome,
+        rng: &mut GenomeRng,
+    ) {
+        if let Some(node) = genome.hidden.random(rng) {
+            let updated = Node::new(
+                node.id,
+                activation_pool
+                    .iter()
+                    .filter(|&&activation| activation != node.activation)
+                    .choose(rng)
+                    .cloned()
+                    .unwrap_or(node.activation),
+            );
+
+            genome.hidden.replace(updated);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::GenomeContext;
+
+    #[test]
+    fn change_activation() {
+        let mut gc = GenomeContext::default();
+
+        let mut genome = gc.initialized_genome();
+
+        genome.add_node_with_context(&mut gc);
+
+        let old_activation = genome.hidden.iter().next().unwrap().activation;
+
+        genome.change_activation_with_context(&mut gc);
+
+        assert_ne!(
+            genome.hidden.iter().next().unwrap().activation,
+            old_activation
+        );
+    }
+}
