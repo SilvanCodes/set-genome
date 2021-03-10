@@ -3,7 +3,7 @@ use genes::Connection;
 pub use genes::{Activation, IdGenerator};
 pub use genome::Genome;
 pub use mutations::Mutations;
-pub use parameters::Parameters;
+pub use parameters::{Parameters, Structure};
 pub use rng::GenomeRng;
 
 mod favannat_impl;
@@ -96,6 +96,13 @@ impl Genome {
                 Mutations::add_node(activation_pool, self, &mut context.rng, &mut context.id_gen)
             }
         }
+    }
+
+    pub fn remove_node_with_context(
+        &mut self,
+        context: &mut GenomeContext,
+    ) -> Result<(), &'static str> {
+        Mutations::remove_node(self, &mut context.rng)
     }
 
     pub fn add_connection_with_context(

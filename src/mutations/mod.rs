@@ -11,6 +11,7 @@ mod add_node;
 mod add_recurrent_connection;
 mod change_activation;
 mod change_weights;
+mod remove_node;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
@@ -19,6 +20,10 @@ pub enum Mutations {
     ChangeWeights {
         chance: f64,
         percent_perturbed: f64,
+    },
+    ChangeActivation {
+        chance: f64,
+        activation_pool: Vec<Activation>,
     },
     AddNode {
         chance: f64,
@@ -30,9 +35,8 @@ pub enum Mutations {
     AddRecurrentConnection {
         chance: f64,
     },
-    ChangeActivation {
+    RemoveNode {
         chance: f64,
-        activation_pool: Vec<Activation>,
     },
 }
 
@@ -76,6 +80,11 @@ impl Mutations {
             } => {
                 if rng.gamble(*chance) {
                     Self::change_activation(activation_pool, genome, rng)
+                }
+            }
+            &Mutations::RemoveNode { chance } => {
+                if rng.gamble(chance) {
+                    return Self::remove_node(genome, rng);
                 }
             }
         }

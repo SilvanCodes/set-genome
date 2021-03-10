@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    genes::{Activation, Connection, Genes, IdGenerator, Node},
+    genes::{Activation, Connection, Genes, Id, IdGenerator, Node},
     parameters::Structure,
     rng::GenomeRng,
 };
@@ -36,6 +36,10 @@ impl Genome {
             .iter()
             .chain(self.hidden.iter())
             .chain(self.outputs.iter())
+    }
+
+    pub fn connections(&self) -> impl Iterator<Item = &Connection> {
+        self.feed_forward.iter().chain(self.recurrent.iter())
     }
 
     pub fn init(&mut self, rng: &mut GenomeRng, structure: &Structure) {
@@ -99,6 +103,18 @@ impl Genome {
             }
         }
         false
+    }
+
+    pub fn has_alternative_input(&self, node: Id, exclude: Id) -> bool {
+        self.connections()
+            .filter(|connection| connection.output == node)
+            .any(|connection| connection.input != exclude)
+    }
+
+    pub fn has_alternative_output(&self, node: Id, exclude: Id) -> bool {
+        self.connections()
+            .filter(|connection| connection.input == node)
+            .any(|connection| connection.output != exclude)
     }
 
     pub fn compatability_distance(
@@ -185,6 +201,126 @@ mod tests {
         genes::{Activation, Connection, Genes, Id, Node},
         GenomeContext,
     };
+
+    #[test]
+    fn find_alternative_input() {
+        let genome = Genome {
+            inputs: Genes(
+                vec![
+                    Node::new(Id(0), Activation::Linear),
+                    Node::new(Id(1), Activation::Linear),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            outputs: Genes(
+                vec![Node::new(Id(2), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            feed_forward: Genes(
+                vec![
+                    Connection::new(Id(0), 1.0, Id(2)),
+                    Connection::new(Id(1), 1.0, Id(2)),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            ..Default::default()
+        };
+
+        assert!(genome.has_alternative_input(Id(2), Id(1)))
+    }
+
+    #[test]
+    fn find_no_alternative_input() {
+        let genome = Genome {
+            inputs: Genes(
+                vec![Node::new(Id(0), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            outputs: Genes(
+                vec![Node::new(Id(1), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            feed_forward: Genes(
+                vec![Connection::new(Id(0), 1.0, Id(1))]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+
+        assert!(!genome.has_alternative_input(Id(1), Id(0)))
+    }
+
+    #[test]
+    fn find_alternative_output() {
+        let genome = Genome {
+            inputs: Genes(
+                vec![Node::new(Id(0), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            outputs: Genes(
+                vec![
+                    Node::new(Id(2), Activation::Linear),
+                    Node::new(Id(1), Activation::Linear),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            feed_forward: Genes(
+                vec![
+                    Connection::new(Id(0), 1.0, Id(1)),
+                    Connection::new(Id(0), 1.0, Id(2)),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            ..Default::default()
+        };
+
+        assert!(genome.has_alternative_output(Id(0), Id(1)))
+    }
+
+    #[test]
+    fn find_no_alternative_output() {
+        let genome = Genome {
+            inputs: Genes(
+                vec![Node::new(Id(0), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            outputs: Genes(
+                vec![Node::new(Id(1), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            feed_forward: Genes(
+                vec![Connection::new(Id(0), 1.0, Id(1))]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+
+        assert!(!genome.has_alternative_output(Id(0), Id(1)))
+    }
 
     #[test]
     fn crossover() {
@@ -407,8 +543,6 @@ mod tests {
 
         let delta =
             Genome::compatability_distance(&genome_0, &genome_1, 2.0, 0.0, 0.0, f64::INFINITY).0;
-
-        dbg!(&delta);
 
         // factor 2 times 2 different genes over 3 total genes over factor 2
         assert!((delta - 2.0 * 2.0 / 3.0 / 2.0).abs() < f64::EPSILON);
