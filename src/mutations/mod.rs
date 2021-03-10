@@ -13,11 +13,12 @@ mod change_activation;
 mod change_weights;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
 pub enum Mutations {
     ChangeWeights {
         chance: f64,
         percent_perturbed: f64,
-        weight_cap: f64,
     },
     AddNode {
         chance: f64,
@@ -46,10 +47,9 @@ impl Mutations {
             &Mutations::ChangeWeights {
                 chance,
                 percent_perturbed,
-                weight_cap,
             } => {
                 if rng.gamble(chance) {
-                    Self::change_weights(percent_perturbed, weight_cap, genome, rng);
+                    Self::change_weights(percent_perturbed, genome, rng);
                 }
             }
             Mutations::AddNode {

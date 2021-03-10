@@ -18,7 +18,6 @@ impl Default for Parameters {
                 Mutations::ChangeWeights {
                     chance: 1.0,
                     percent_perturbed: 0.5,
-                    weight_cap: 1.0,
                 },
                 Mutations::ChangeActivation {
                     chance: 0.05,
@@ -64,6 +63,7 @@ pub struct Structure {
     pub outputs: usize,
     pub outputs_activation: Activation,
     pub weight_std_dev: f64,
+    pub weight_cap: f64,
 }
 
 impl Default for Structure {
@@ -74,36 +74,10 @@ impl Default for Structure {
             outputs: 1,
             outputs_activation: Activation::Tanh,
             weight_std_dev: 0.1,
+            weight_cap: 1.0,
         }
     }
 }
-
-/* #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Mutations {
-    pub chance_node: f64,
-    pub chance_connection: f64,
-    pub chance_connection_recurrent: f64,
-    pub chance_activation_change: f64,
-    pub chance_weight_perturbation: f64,
-    pub weight_perturbation_percent: f64,
-    pub weight_perturbation_std_dev: f64,
-    pub weight_perturbation_cap: f64,
-}
-
-impl Default for Mutations {
-    fn default() -> Self {
-        Self {
-            chance_node: 0.005,
-            chance_connection: 0.1,
-            chance_connection_recurrent: 0.1,
-            chance_activation_change: 0.05,
-            chance_weight_perturbation: 1.0,
-            weight_perturbation_percent: 0.5,
-            weight_perturbation_std_dev: 0.1,
-            weight_perturbation_cap: 1.0,
-        }
-    }
-} */
 
 impl Parameters {
     pub fn new(path: &str) -> Result<Self, ConfigError> {

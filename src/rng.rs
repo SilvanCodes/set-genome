@@ -5,14 +5,16 @@ use rand_distr::{Distribution, Normal};
 pub struct GenomeRng {
     small: SmallRng,
     weight_distribution: Normal<f64>,
+    pub cap: f64,
 }
 
 impl GenomeRng {
-    pub fn new(seed: u64, std_dev: f64) -> Self {
+    pub fn new(seed: u64, std_dev: f64, cap: f64) -> Self {
         Self {
             small: SmallRng::seed_from_u64(seed),
             weight_distribution: Normal::new(0.0, std_dev)
                 .expect("could not create weight distribution"),
+            cap,
         }
     }
 
