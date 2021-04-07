@@ -77,12 +77,6 @@ impl<T: Gene> FromIterator<T> for Genes<T> {
     }
 }
 
-impl<'a, U: 'a, T: Gene + Deref<Target = U>> Genes<T> {
-    pub fn iterate_unwrapped(&'a self) -> impl Iterator<Item = &'a U> + Sized + Clone {
-        self.iter().map(|value| value.deref())
-    }
-}
-
 impl<T: Gene + Ord> Genes<T> {
     pub fn as_sorted_vec(&self) -> Vec<&T> {
         let mut vec: Vec<&T> = self.iter().collect();
