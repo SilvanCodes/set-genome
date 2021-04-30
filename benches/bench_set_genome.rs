@@ -12,7 +12,7 @@ pub fn crossover_same_genome_benchmark(c: &mut Criterion) {
     });
 }
 
-pub fn crossover_higly_mutated_genomes_benchmark(c: &mut Criterion) {
+pub fn crossover_highly_mutated_genomes_benchmark(c: &mut Criterion) {
     let parameters = Parameters {
         seed: None,
         structure: Default::default(),
@@ -46,7 +46,7 @@ pub fn crossover_higly_mutated_genomes_benchmark(c: &mut Criterion) {
         genome_1.mutate_with_context(&mut gc);
     }
 
-    c.bench_function("crossover higly mutated genomes", |b| {
+    c.bench_function("crossover highly mutated genomes", |b| {
         b.iter(|| genome_0.cross_in(&genome_1, &mut gc.rng))
     });
 }
@@ -98,7 +98,7 @@ criterion_group!(
     benches,
     mutate_genome_benchmark,
     crossover_same_genome_benchmark,
-    crossover_higly_mutated_genomes_benchmark,
+    crossover_highly_mutated_genomes_benchmark,
     add_node_to_genome_benchmark
 );
 criterion_main!(benches);
