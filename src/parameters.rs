@@ -2,7 +2,7 @@ use crate::{genes::Activation, mutations::Mutations};
 use config::{Config, ConfigError, File};
 use serde::{Deserialize, Serialize};
 
-/// This struct captures configuration about the basic ANN structure and available mutations.
+/// This struct captures configuration about the basic ANN structure and [available mutations].
 ///
 /// It can be constructed manually or from a `.toml` file.
 ///
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Manual:
 /// ```
-/// use set_genome::{Parameters, Structure, Mutations};
+/// use set_genome::{Parameters, Structure, Mutations, activations::Activation};
 ///
 /// let parameters = Parameters {
 ///     seed: None,
@@ -61,7 +61,7 @@ use serde::{Deserialize, Serialize};
 ///         Mutations::AddConnection { chance: 0.1 },
 ///         Mutations::AddRecurrentConnection { chance: 0.01 },
 ///     ],
-/// }
+/// };
 /// ```
 ///
 /// Write a config file like so:
@@ -128,6 +128,9 @@ use serde::{Deserialize, Serialize};
 /// ```text
 /// // let parameters = Parameters::new("path/to/file");
 /// ```
+///
+/// [available mutations]: `Mutations`
+///
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Parameters {
     /// Seed for the RNG.

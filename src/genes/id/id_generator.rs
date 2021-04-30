@@ -3,6 +3,10 @@ use std::{collections::HashMap, ops::RangeFrom};
 use super::{id_iter::IdIter, Id};
 
 /// Acts as a generator and cache for ANN node identities.
+///
+/// For any evolution process you should only ever use exactly one [`IdGenerator`] and pass it around whenever one is required,
+/// as several operations and gurantees rely on the cache inside the generator to function as defined.
+/// Usually it suffices to use the `<operation>_with_context` fuctions on the [`crate::Genome`] and let the [`crate::GenomeContext`] handle the identity generation.
 #[derive(Debug)]
 pub struct IdGenerator {
     id_gen: RangeFrom<usize>,
@@ -19,9 +23,12 @@ impl Default for IdGenerator {
 }
 
 impl IdGenerator {
+    /// Returns the next unique identity.
     pub fn next_id(&mut self) -> Id {
         self.id_gen.next().map(Id).unwrap()
     }
+
+    /// Returns an iterator over identities for the given cache key which automatically extends the cache with new entries when iterated beyond the entries cached so far.
     pub fn cached_id_iter(&mut self, cache_key: (Id, Id)) -> IdIter {
         let cache_entry = self.id_cache.entry(cache_key).or_insert_with(Vec::new);
         IdIter::new(cache_entry, &mut self.id_gen)

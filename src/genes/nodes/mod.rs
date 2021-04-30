@@ -11,6 +11,8 @@ use super::{Gene, Id};
 pub mod activations;
 
 /// Struct describing a ANN node.
+///
+/// A node is characterised by its identity and its activation function.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Node {
     pub id: Id,

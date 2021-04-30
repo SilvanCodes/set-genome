@@ -4,6 +4,8 @@ use std::{cmp::Ordering, hash::Hash, hash::Hasher};
 use super::{Gene, Id};
 
 /// Struct describing a ANN connection.
+///
+/// A connection is characterised by its input/origin/start, its output/destination/end and its weight.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
     pub input: Id,

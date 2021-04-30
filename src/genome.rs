@@ -10,6 +10,12 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 /// This is the core data structure this crate revoles around.
+///
+/// A genome can be changed by mutation (a random alteration of its structure) or by crossing in another genome (recombining their matching parts).
+/// A lot of additional information explaining details of the structure can be found in the [thesis] that developed this idea.
+/// More and more knowledge from there will find its way into this documentaion over time.
+///
+/// [thesis]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Genome {
     pub inputs: Genes<Node>,
@@ -20,6 +26,8 @@ pub struct Genome {
 }
 
 impl Genome {
+    /// Creates a new genome according to the [`Structure`] it is given.
+    /// It generates all necessary identities from the [`IdGenerator`].
     pub fn new(id_gen: &mut IdGenerator, structure: &Structure) -> Self {
         Genome {
             inputs: (0..structure.inputs)
@@ -32,6 +40,7 @@ impl Genome {
         }
     }
 
+    /// Returns an iterator over references to all node genes (input + hidden + output) in the genome.
     pub fn nodes(&self) -> impl Iterator<Item = &Node> {
         self.inputs
             .iter()
@@ -39,10 +48,12 @@ impl Genome {
             .chain(self.outputs.iter())
     }
 
+    /// Returns an iterator over references to all connection genes (feed-forward + recurrent) in the genome.
     pub fn connections(&self) -> impl Iterator<Item = &Connection> {
         self.feed_forward.iter().chain(self.recurrent.iter())
     }
 
+    /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
     pub fn init(&mut self, rng: &mut GenomeRng, structure: &Structure) {
         for input in self
             .inputs
@@ -60,14 +71,20 @@ impl Genome {
         }
     }
 
+    /// Returns the sum of connection genes inside the genome (feed-forward + recurrent).
     pub fn len(&self) -> usize {
         self.feed_forward.len() + self.recurrent.len()
     }
 
+    /// Is true when no connection genes are present in the genome.
     pub fn is_empty(&self) -> bool {
         self.feed_forward.is_empty() && self.recurrent.is_empty()
     }
 
+    /// Cross-in another genome.
+    /// For connection genes present in both genomes flip a coin to determine the weight inside the new genome.
+    /// For node genes present in both genomes flip a coin to determine the activation function inside the new genome.
+    /// Any structure not present in other is taken over unchanged from `self`.
     pub fn cross_in(&self, other: &Self, rng: &mut impl Rng) -> Self {
         let feed_forward = self.feed_forward.cross_in(&other.feed_forward, rng);
         let recurrent = self.recurrent.cross_in(&other.recurrent, rng);
@@ -83,6 +100,8 @@ impl Genome {
         }
     }
 
+    /// Check if connecting `start_node` and `end_node` would introduce a circle into the ANN structure.
+    /// Think about the ANN as a graph for this, if you follow the connection arrows, can you reach `start_node` from `end_node`?
     pub fn would_form_cycle(&self, start_node: &Node, end_node: &Node) -> bool {
         let mut to_visit = vec![end_node.id];
         let mut visited = HashSet::new();
@@ -106,18 +125,25 @@ impl Genome {
         false
     }
 
+    /// Check if a node gene has more than one connection gene pointing to it.
     pub fn has_alternative_input(&self, node: Id, exclude: Id) -> bool {
         self.connections()
             .filter(|connection| connection.output == node)
             .any(|connection| connection.input != exclude)
     }
 
+    /// Check if a node gene has more than one connection gene leaving it.
     pub fn has_alternative_output(&self, node: Id, exclude: Id) -> bool {
         self.connections()
             .filter(|connection| connection.input == node)
             .any(|connection| connection.output != exclude)
     }
 
+    /// Defines a distance metric between genomes, useful for other evolutionary mechanisms such as speciation used in [NEAT].
+    /// Expects three factors to tune to importance of several aspects contributing to the distance metric, for details read [here].
+    ///
+    /// [NEAT]: http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf
+    /// [here]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
     pub fn compatability_distance(
         genome_0: &Self,
         genome_1: &Self,

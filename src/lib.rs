@@ -5,10 +5,15 @@
 //!
 //! # SET genome
 //!
-//! SET stands for **S**et **E**ncoded **T**opology and this crate implements a genetic data structure, the genome, using this set encoding to describe artificial neural networks (ANNs).
-//! Further this crate defines operations on this genome, namely mutations and crossover. Mutations alter a genome by adding or removing genes, crossover recombines two genomes.
-//! To have an intuitive definition of crossover for network structures the [NEAT algorithm](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) defined a procedure and has to be understood as a mental predecessor to this SET encoding,
-//! which very much is a formalization and progression of ideas NEAT introduced regarding the genome.
+//! SET stands for **S**et **E**ncoded **T**opology and this crate implements a genetic data structure, the [`Genome`], using this set encoding to describe artificial neural networks (ANNs).
+//! Further this crate defines operations on this genome, namely [`Mutations`] and [crossover]. Mutations alter a genome by adding or removing genes, crossover recombines two genomes.
+//! To have an intuitive definition of crossover for network structures the [NEAT algorithm] defined a procedure and has to be understood as a mental predecessor to this SET encoding,
+//! which very much is a formalization and progression of the ideas NEAT introduced regarding the genome.
+//! The thesis describing this genome and other ideas can be found [here], a paper focusing just on the SET encoding will follow soon.
+//!
+//! [crossover]: `Genome::cross_in`
+//! [NEAT algorithm]: http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf
+//! [here]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
 
 use genes::Connection;
 
@@ -25,10 +30,10 @@ mod mutations;
 mod parameters;
 mod rng;
 
-/// This struct wraps all required building blocks to create and initialize genomes while maintaining consistent identities of their parts across operations.
-/// Further it provides a simplified API to perform operations on them.
+/// This struct simplifies operations on the [`Genome`].
 ///
-/// A genome can change by mutation (a random alteration of its structure) or by crossing in another genome (recombining their matching parts).
+/// The [`GenomeContext`] wraps all required building blocks to create and initialize genomes while maintaining consistent identities of their parts across operations.
+/// It is used in a simplified API to perform operations on genomes, as it handles all necessary moving parts for you.
 ///
 /// # Examples
 ///
@@ -46,7 +51,7 @@ mod rng;
 /// Also the weights of our connections are supposed to be capped between \[-1, 1\] and change by deltas sampled from a normal distribution with 0.1 standard deviation.
 ///
 /// ```
-/// use set_genome::{GenomeContext, activations::Activation, Parameters};
+/// use set_genome::{GenomeContext, activations::Activation, Parameters, Structure};
 ///
 /// let parameters = Parameters {
 ///     seed: None,
@@ -65,14 +70,14 @@ mod rng;
 ///         weight_cap: 1.0,
 ///     },
 ///     mutations: vec![],
-/// }
+/// };
 ///
 /// let genome_context = GenomeContext::new(parameters);
 /// ```
 /// This allows us to ask this context for an initialized genome which conforms to our description above:
 ///
 /// ```
-/// # use set_genome::{GenomeContext, activations::Activation, Parameters};
+/// # use set_genome::{GenomeContext, activations::Activation, Parameters, Structure};
 /// #
 /// # let parameters = Parameters {
 /// #     seed: None,
@@ -91,7 +96,7 @@ mod rng;
 /// #         weight_cap: 1.0,
 /// #     },
 /// #     mutations: vec![],
-/// # }
+/// # };
 /// #
 /// # let genome_context = GenomeContext::new(parameters);
 /// let genome_with_connections = genome_context.initialized_genome();
@@ -100,7 +105,7 @@ mod rng;
 /// "Uninitialized" thereby implys no connections have been constructed, such a genome is also available:
 ///
 /// ```
-/// # use set_genome::{GenomeContext, activations::Activation, Parameters};
+/// # use set_genome::{GenomeContext, activations::Activation, Parameters, Structure};
 /// #
 /// # let parameters = Parameters {
 /// #     seed: None,
@@ -119,7 +124,7 @@ mod rng;
 /// #         weight_cap: 1.0,
 /// #     },
 /// #     mutations: vec![],
-/// # }
+/// # };
 /// #
 /// # let genome_context = GenomeContext::new(parameters);
 /// let genome_without_connections = genome_context.uninitialized_genome();
@@ -127,7 +132,10 @@ mod rng;
 /// Setting the `inputs_connected_percent` field in the [`parameters::Structure`] parameter to zero makes the
 /// "initialized" and "uninitialized" genome look the same.
 ///
-/// So we got ourselves a genome, let's mutate it.
+/// So we got ourselves a genome, let's mutate it: [`Genome::mutate_with_context`].
+///
+/// The possible mutations:
+///
 /// - [`Mutations::add_connection`]
 /// - [`Mutations::add_node`]
 /// - [`Mutations::add_recurrent_connection`]
@@ -135,9 +143,10 @@ mod rng;
 /// - [`Mutations::change_weights`]
 /// - [`Mutations::remove_node`]
 ///
+/// To evaluate the function encoded in the genome check [this crate].
 ///
-///
-///
+/// [thesis]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
+/// [this crate]: https://github.com/SilvanCodes/favannat
 ///
 pub struct GenomeContext {
     pub id_gen: IdGenerator,
@@ -177,7 +186,7 @@ impl GenomeContext {
     }
 
     /// Returns an uninitialized genome, see [`Genome::init_with_context`].
-    pub fn uninitialized_genome(&mut self) -> Genome {
+    pub fn uninitialized_genome(&self) -> Genome {
         self.uninitialized_genome.clone()
     }
 }
@@ -211,7 +220,27 @@ impl Genome {
         }
     }
 
-    /// Apply all mutations listed in the context with respect to their chance of happening.
+    /// Apply all mutations listed in the [parameters of the context] with respect to their chance of happening.
+    ///
+    /// This will probably be the most common way to apply mutations to a genome.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use set_genome::GenomeContext;
+    ///
+    /// // Create a `GenomeContext`.
+    /// let mut genome_context = GenomeContext::default();
+    ///
+    /// // Create an initialized `Genome`.
+    /// let mut genome = genome_context.initialized_genome();
+    ///
+    /// // Randomly mutate the genome according to the available mutations listed in the parameters of the context and their corresponding chances .
+    /// genome.mutate_with_context(&mut genome_context);
+    /// ```
+    ///
+    /// [parameters of the context]: `Parameters`
+    ///
     pub fn mutate_with_context(&mut self, context: &mut GenomeContext) {
         for mutation in &context.parameters.mutations {
             mutation.mutate(self, &mut context.rng, &mut context.id_gen);
