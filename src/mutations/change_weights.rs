@@ -37,11 +37,7 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        mutations::Mutations,
-        parameters::{Parameters, Structure},
-        GenomeContext,
-    };
+    use crate::GenomeContext;
 
     #[test]
     fn change_weights() {
