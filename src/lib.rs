@@ -213,7 +213,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    context.rng.weight_perturbation(),
+                    context.rng.weight_perturbation(0.0),
                     output.id
                 )));
             }

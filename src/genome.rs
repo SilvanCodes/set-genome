@@ -64,7 +64,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    rng.weight_perturbation(),
+                    rng.weight_perturbation(0.0),
                     output.id
                 )));
             }

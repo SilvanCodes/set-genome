@@ -6,7 +6,7 @@ use rand_distr::{Distribution, Normal};
 pub struct GenomeRng {
     small: SmallRng,
     weight_distribution: Normal<f64>,
-    pub cap: f64,
+    cap: f64,
 }
 
 impl GenomeRng {
@@ -23,8 +23,12 @@ impl GenomeRng {
         self.gen::<f64>() < chance
     }
 
-    pub fn weight_perturbation(&mut self) -> f64 {
-        self.weight_distribution.sample(&mut self.small)
+    pub fn weight_perturbation(&mut self, weight: f64) -> f64 {
+        let mut perturbation = self.weight_distribution.sample(&mut self.small);
+        while (weight + perturbation) > self.cap || (weight + perturbation) < -self.cap {
+            perturbation = -perturbation / 2.0;
+        }
+        weight + perturbation
     }
 }
 
@@ -43,5 +47,21 @@ impl RngCore for GenomeRng {
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand::Error> {
         self.small.try_fill_bytes(dest)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GenomeRng;
+    #[test]
+    fn respect_weight_cap() {
+        let cap = 1.0;
+        let mut rng = GenomeRng::new(0, 0.5, cap);
+        let mut weight = 0.0;
+
+        for _ in 0..1000 {
+            weight = rng.weight_perturbation(weight);
+            assert!(weight <= cap && weight >= -cap, "{}", weight);
+        }
     }
 }

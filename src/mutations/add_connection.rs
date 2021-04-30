@@ -36,7 +36,7 @@ impl Mutations {
                 // add new feed-forward connection
                 assert!(genome.feed_forward.insert(Connection::new(
                     start_node.id,
-                    rng.weight_perturbation(),
+                    rng.weight_perturbation(0.0),
                     end_node.id,
                 )));
                 return Ok(());

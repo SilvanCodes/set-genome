@@ -15,13 +15,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_feed_forward_amount {
-                    let mut perturbation = rng.weight_perturbation();
-                    if (connection.weight + perturbation) > rng.cap
-                        || (connection.weight + perturbation) < -rng.cap
-                    {
-                        perturbation = -perturbation;
-                    }
-                    connection.weight += perturbation;
+                    connection.weight = rng.weight_perturbation(connection.weight);
                 }
                 connection
             })
@@ -33,13 +27,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_recurrent_amount {
-                    let mut perturbation = rng.weight_perturbation();
-                    if (connection.weight + perturbation) > rng.cap
-                        || (connection.weight + perturbation) < -rng.cap
-                    {
-                        perturbation = -perturbation;
-                    }
-                    connection.weight += perturbation;
+                    connection.weight = rng.weight_perturbation(connection.weight);
                 }
                 connection
             })
@@ -68,27 +56,5 @@ mod tests {
         assert!(
             (old_weight - genome.feed_forward.iter().next().unwrap().weight).abs() > f64::EPSILON
         );
-    }
-
-    #[test]
-    fn respect_weight_cap() {
-        let parameters = Parameters {
-            seed: None,
-            structure: Structure::default(),
-            mutations: vec![Mutations::ChangeWeights {
-                chance: 1.0,
-                percent_perturbed: 1.0,
-            }],
-        };
-
-        let mut gc = GenomeContext::new(parameters);
-
-        let mut genome = gc.initialized_genome();
-
-        for _ in 0..1000 {
-            genome.change_weights_with_context(&mut gc);
-            let weight = genome.feed_forward.iter().next().unwrap().weight;
-            assert!(weight < gc.rng.cap && weight > -gc.rng.cap);
-        }
     }
 }
