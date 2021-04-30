@@ -13,34 +13,37 @@ mod change_activation;
 mod change_weights;
 mod remove_node;
 
+/// Lists all possible mutations with their corresponding parameters.
+///
+/// Each mutation acts as a self-contained unit and has to be listed in the [`crate::Parameters::mutations`] field in order to take effect when calling [`crate::Genome::mutate_with_context`].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum Mutations {
-    ChangeWeights {
-        chance: f64,
-        percent_perturbed: f64,
-    },
+    /// See [`Mutations::change_weights`].
+    ChangeWeights { chance: f64, percent_perturbed: f64 },
+    /// See [`Mutations::change_activation`].
     ChangeActivation {
         chance: f64,
         activation_pool: Vec<Activation>,
     },
+    /// See [`Mutations::add_node`].
     AddNode {
         chance: f64,
         activation_pool: Vec<Activation>,
     },
-    AddConnection {
-        chance: f64,
-    },
-    AddRecurrentConnection {
-        chance: f64,
-    },
-    RemoveNode {
-        chance: f64,
-    },
+    /// See [`Mutations::add_connection`].
+    AddConnection { chance: f64 },
+    /// See [`Mutations::add_recurrent_connection`].
+    AddRecurrentConnection { chance: f64 },
+    /// See [`Mutations::remove_node`].
+    RemoveNode { chance: f64 },
 }
 
 impl Mutations {
+    /// Mutate a [`Genome`] but respects the associate `chance` field of the [`Mutations`] enum variants.
+    /// The user needs to supply the [`GenomeRng`] and [`IdGenerator`] manually when using this method directly.
+    /// Use the [`crate::GenomeContext`] and the genomes `<>_with_context` functions to avoid manually handling those.
     pub fn mutate(
         &self,
         genome: &mut Genome,

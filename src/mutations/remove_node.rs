@@ -3,6 +3,9 @@ use rand::Rng;
 use crate::{Genome, Mutations};
 
 impl Mutations {
+    /// Removes a node and all incoming and outgoing connections, should this be possible without introducing dangling structure.
+    /// Dangling means the in- or out-degree of any hidden node is zero, i.e. it neither can receive nor propagate a signal.
+    /// If it is not possible, no node will be removed.
     pub fn remove_node(genome: &mut Genome, rng: &mut impl Rng) -> Result<(), &'static str> {
         if let Some(removable_node) = &genome
             .hidden
@@ -61,8 +64,9 @@ impl Mutations {
 #[cfg(test)]
 mod tests {
     use crate::{
+        activations::Activation,
         genes::{Connection, Genes, Id, Node},
-        Activation, Genome, GenomeContext,
+        Genome, GenomeContext,
     };
 
     #[test]

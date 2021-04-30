@@ -9,6 +9,8 @@ use crate::{
 use super::Mutations;
 
 impl Mutations {
+    /// This mutation adds a new node to the genome by "splitting" an existing connection, i.e. the existing connection gets "rerouted" via the new node and the weight of the split connection is set to zero.
+    /// The connection leading into the new node is of weight 1.0 and the connection originating from the new node has the same weight as the split connection (before it is zeroed).
     pub fn add_node(
         activation_pool: &[Activation],
         genome: &mut Genome,

@@ -9,6 +9,7 @@ use crate::{
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
+/// This is the core data structure this crate revoles around.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Genome {
     pub inputs: Genes<Node>,

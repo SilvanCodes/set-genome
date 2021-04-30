@@ -3,6 +3,7 @@ use std::{cmp::Ordering, hash::Hash, hash::Hasher};
 
 use super::{Gene, Id};
 
+/// Struct describing a ANN connection.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
     pub input: Id,

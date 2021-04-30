@@ -2,6 +2,7 @@ use std::{collections::HashMap, ops::RangeFrom};
 
 use super::{id_iter::IdIter, Id};
 
+/// Acts as a generator and cache for ANN node identities.
 #[derive(Debug)]
 pub struct IdGenerator {
     id_gen: RangeFrom<usize>,

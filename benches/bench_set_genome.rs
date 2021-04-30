@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use set_genome::{Activation, GenomeContext, Mutations, Parameters};
+use set_genome::{activations::Activation, GenomeContext, Mutations, Parameters};
 
 pub fn crossover_same_genome_benchmark(c: &mut Criterion) {
     let mut gc = GenomeContext::default();

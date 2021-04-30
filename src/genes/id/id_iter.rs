@@ -2,6 +2,9 @@ use std::ops::RangeFrom;
 
 use super::Id;
 
+/// Iterator over identities known for a specific cache entry.
+///
+/// The iterator automatically continues and updates the cache with new identities should all the cached entries be iterated.
 pub struct IdIter<'a> {
     index: usize,
     ids: &'a mut Vec<Id>,

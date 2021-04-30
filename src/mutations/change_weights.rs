@@ -2,6 +2,7 @@ use super::Mutations;
 use crate::{genome::Genome, rng::GenomeRng};
 
 impl Mutations {
+    /// This mutation alters `percent_perturbed` connection weights with perturbations sampled from calls to [`GenomeRng::weight_perturbation`].
     pub fn change_weights(percent_perturbed: f64, genome: &mut Genome, rng: &mut GenomeRng) {
         let change_feed_forward_amount =
             (percent_perturbed * genome.feed_forward.len() as f64).ceil() as usize;

@@ -5,6 +5,10 @@ use crate::{genes::Connection, genome::Genome, rng::GenomeRng};
 use super::Mutations;
 
 impl Mutations {
+    /// This mutation adds a recurrent connection to the `genome` when possible.
+    /// It is possible when [^any two nodes] are not yet connected with a recurrent connection.
+    ///
+    /// [^any two nodes]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
     pub fn add_recurrent_connection(
         genome: &mut Genome,
         rng: &mut GenomeRng,

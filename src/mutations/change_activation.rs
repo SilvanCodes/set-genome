@@ -9,6 +9,8 @@ use crate::{
 use super::Mutations;
 
 impl Mutations {
+    /// This mutation changes the activation function of one random hidden node to any other choosen from `activation_pool`.
+    /// If the pool is empty (the current activation function is excluded) nothing is changed.
     pub fn change_activation(
         activation_pool: &[Activation],
         genome: &mut Genome,

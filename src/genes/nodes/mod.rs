@@ -10,6 +10,7 @@ use super::{Gene, Id};
 
 pub mod activations;
 
+/// Struct describing a ANN node.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Node {
     pub id: Id,

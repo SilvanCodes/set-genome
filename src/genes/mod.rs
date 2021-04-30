@@ -1,3 +1,7 @@
+//! The `Gene` trait is a marker and in combination with the `Genes` struct describes common operations on collections (sets) of genes.
+//!
+//! The genome holds several fields with `Genes` of different types.
+
 use rand::{prelude::IteratorRandom, prelude::SliceRandom, Rng};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, hash::Hash, iter::FromIterator, ops::Deref, ops::DerefMut};

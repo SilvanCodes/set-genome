@@ -1,6 +1,7 @@
 use rand::{prelude::SmallRng, Rng, RngCore, SeedableRng};
 use rand_distr::{Distribution, Normal};
 
+/// This struct serves as the randomness source for all operations.
 #[derive(Debug)]
 pub struct GenomeRng {
     small: SmallRng,
