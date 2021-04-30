@@ -57,7 +57,7 @@ impl<T: Gene> Genes<T> {
         random_vec.into_iter()
     }
 
-    pub fn iterate_matches<'a>(
+    pub fn iterate_matching_genes<'a>(
         &'a self,
         other: &'a Genes<T>,
     ) -> impl Iterator<Item = (&'a T, &'a T)> {
@@ -66,7 +66,7 @@ impl<T: Gene> Genes<T> {
             .map(move |item_self| (item_self, other.get(item_self).unwrap()))
     }
 
-    pub fn iterate_unmatches<'a>(&'a self, other: &'a Genes<T>) -> impl Iterator<Item = &'a T> {
+    pub fn iterate_unique_genes<'a>(&'a self, other: &'a Genes<T>) -> impl Iterator<Item = &'a T> {
         self.symmetric_difference(other)
     }
 }
@@ -87,7 +87,7 @@ impl<T: Gene + Ord> Genes<T> {
 
 impl<T: Gene + Clone> Genes<T> {
     pub fn cross_in(&self, other: &Self, rng: &mut impl Rng) -> Self {
-        self.iterate_matches(other)
+        self.iterate_matching_genes(other)
             .map(|(gene_self, gene_other)| {
                 if rng.gen::<f64>() < 0.5 {
                     gene_self.clone()

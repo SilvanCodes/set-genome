@@ -130,14 +130,14 @@ impl Genome {
 
         let matching_genes_count_total = (genome_0
             .feed_forward
-            .iterate_matches(&genome_1.feed_forward)
+            .iterate_matching_genes(&genome_1.feed_forward)
             .inspect(|(connection_0, connection_1)| {
                 weight_difference_total += (connection_0.weight - connection_1.weight).abs();
             })
             .count()
             + genome_0
                 .recurrent
-                .iterate_matches(&genome_1.recurrent)
+                .iterate_matching_genes(&genome_1.recurrent)
                 .inspect(|(connection_0, connection_1)| {
                     weight_difference_total += (connection_0.weight - connection_1.weight).abs();
                 })
@@ -145,16 +145,16 @@ impl Genome {
 
         let different_genes_count_total = (genome_0
             .feed_forward
-            .iterate_unmatches(&genome_1.feed_forward)
+            .iterate_unique_genes(&genome_1.feed_forward)
             .count()
             + genome_0
                 .recurrent
-                .iterate_unmatches(&genome_1.recurrent)
+                .iterate_unique_genes(&genome_1.recurrent)
                 .count()) as f64;
 
         let matching_nodes_count = genome_0
             .hidden
-            .iterate_matches(&genome_1.hidden)
+            .iterate_matching_genes(&genome_1.hidden)
             .inspect(|(node_0, node_1)| {
                 if node_0.activation != node_1.activation {
                     activation_difference += 1.0;
