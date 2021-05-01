@@ -17,7 +17,7 @@
 
 use genes::Connection;
 
-pub use genes::{activations, IdGenerator};
+pub use genes::{activations, Id, IdGenerator};
 pub use genome::Genome;
 pub use mutations::Mutations;
 pub use parameters::{Parameters, Structure};

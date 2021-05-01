@@ -10,6 +10,16 @@ pub struct GenomeRng {
 }
 
 impl GenomeRng {
+    /// Creates a [`GenomeRng`].
+    ///
+    /// `seed` is specified for reproducibility of experiments.
+    /// `std_dev` configures the standard deviation of the normal distribution from which the weight perturbations are sampled.
+    /// `cap` specifies the upper and lower bound of values returned from [`GenomeRng::weight_perturbation`].
+    ///
+    /// ```
+    /// use set_genome::GenomeRng;
+    /// let genome_rng = GenomeRng::new(42, 0.1, 1.0);
+    /// ```
     pub fn new(seed: u64, std_dev: f64, cap: f64) -> Self {
         Self {
             small: SmallRng::seed_from_u64(seed),
@@ -19,10 +29,34 @@ impl GenomeRng {
         }
     }
 
+    /// Returns true `chance` percent of the time.
+    ///
+    /// ```
+    /// # use set_genome::GenomeRng;
+    /// # let mut genome_rng = GenomeRng::new(42, 0.1, 1.0);
+    /// // a coin flip
+    /// if genome_rng.gamble(0.5) {
+    ///     println!("heads")
+    /// } else {
+    ///     println!("tails")
+    /// }
+    ///
+    /// // the following always happens, gambling with 100% chance to succeed
+    /// assert!(genome_rng.gamble(1.0), "I should always win!");
+    /// ```
     pub fn gamble(&mut self, chance: f64) -> bool {
         self.gen::<f64>() < chance
     }
 
+    /// Returns the `weight` altered by some random value.
+    ///
+    /// ```
+    /// # use set_genome::GenomeRng;
+    /// let mut genome_rng = GenomeRng::new(42, 0.1, 1.0);
+    /// // random_weight will probably be some small value,
+    /// // definitely not bigger than 1.0 or smaller than -1.0.
+    /// let random_weight = genome_rng.weight_perturbation(0.0);
+    /// ```
     pub fn weight_perturbation(&mut self, weight: f64) -> f64 {
         let mut perturbation = self.weight_distribution.sample(&mut self.small);
         while (weight + perturbation) > self.cap || (weight + perturbation) < -self.cap {
