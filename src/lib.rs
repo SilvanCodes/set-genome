@@ -247,7 +247,8 @@ impl Genome {
         }
     }
 
-    /// Apply the "add node" mutation, should it be listed in the context.
+    /// Calls [`Mutations::add_node`] with `self`, should [`Mutations::AddNode`] be listed in the context.
+    /// It needs to be listed as it provides parameters.
     pub fn add_node_with_context(&mut self, context: &mut GenomeContext) {
         for mutation in &context.parameters.mutations {
             if let Mutations::AddNode {
@@ -259,7 +260,7 @@ impl Genome {
         }
     }
 
-    /// Apply the "remove node" mutation, should it be listed in the context.
+    /// Calls the [`Mutations::remove_node`] with `self`.
     pub fn remove_node_with_context(
         &mut self,
         context: &mut GenomeContext,
@@ -267,7 +268,7 @@ impl Genome {
         Mutations::remove_node(self, &mut context.rng)
     }
 
-    /// Apply the "add connection" mutation, should it be listed in the context.
+    /// Calls the [`Mutations::add_connection`] with `self`.
     pub fn add_connection_with_context(
         &mut self,
         context: &mut GenomeContext,
@@ -275,7 +276,7 @@ impl Genome {
         Mutations::add_connection(self, &mut context.rng)
     }
 
-    /// Apply the "add recurrent connection" mutation, should it be listed in the context.
+    /// Calls the [`Mutations::add_recurrent_connection`] with `self`.
     pub fn add_recurrent_connection_with_context(
         &mut self,
         context: &mut GenomeContext,
@@ -283,7 +284,8 @@ impl Genome {
         Mutations::add_recurrent_connection(self, &mut context.rng)
     }
 
-    /// Apply the "change activation" mutation, should it be listed in the context.
+    /// Calls [`Mutations::change_activation`] with `self`, should [`Mutations::ChangeActivation`] be listed in the context.
+    /// It needs to be listed as it provides parameters.
     pub fn change_activation_with_context(&mut self, context: &mut GenomeContext) {
         for mutation in &context.parameters.mutations {
             if let Mutations::ChangeActivation {
@@ -295,7 +297,8 @@ impl Genome {
         }
     }
 
-    /// Apply the "change weights" mutation, should it be listed in the context.
+    /// Calls [`Mutations::change_weights`] with `self`, should [`Mutations::ChangeWeights`] be listed in the context.
+    /// It needs to be listed as it provides parameters.
     pub fn change_weights_with_context(&mut self, context: &mut GenomeContext) {
         for mutation in &context.parameters.mutations {
             if let Mutations::ChangeWeights {
