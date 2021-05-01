@@ -146,7 +146,7 @@ mod rng;
 /// To evaluate the function encoded in the genome check [this crate].
 ///
 /// [thesis]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
-/// [this crate]: https://github.com/SilvanCodes/favannat
+/// [this crate]: https://crates.io/crates/favannat
 ///
 pub struct GenomeContext {
     pub id_gen: IdGenerator,
