@@ -3,6 +3,14 @@ name = "set_genome"
 version = "0.1.0"
 authors = ["Silvan Buedenbender <silvancodes@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "A genetic data structure for neuroevolution algorithms."
+homepage = "https://github.com/SilvanCodes/set-genome"
+documentation = "https://docs.rs/set_genome"
+repository = "https://github.com/SilvanCodes/set-genome"
+readme = "README.md"
+keywords = ["ann", "evolution"]
+categories = ["data-structures", "science", "mathematics"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
