@@ -8,12 +8,16 @@ impl Mutations {
     /// This mutation adds a recurrent connection to the `genome` when possible.
     /// It is possible when any two nodes [^details] are not yet connected with a recurrent connection.
     ///
-    /// [^details]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
+    /// [^details]: "any two nodes" is technically not correct as the end node has to come from the intersection of the hidden and output nodes.
     pub fn add_recurrent_connection(
         genome: &mut Genome,
         rng: &mut GenomeRng,
     ) -> Result<(), &'static str> {
-        let start_node_iterator = genome.inputs.iter().chain(genome.hidden.iter());
+        let start_node_iterator = genome
+            .inputs
+            .iter()
+            .chain(genome.hidden.iter())
+            .chain(genome.outputs.iter());
         let end_node_iterator = genome.hidden.iter().chain(genome.outputs.iter());
 
         for start_node in start_node_iterator
