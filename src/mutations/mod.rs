@@ -11,7 +11,9 @@ mod add_node;
 mod add_recurrent_connection;
 mod change_activation;
 mod change_weights;
+mod remove_connection;
 mod remove_node;
+mod remove_recurrent_connection;
 
 /// Lists all possible mutations with their corresponding parameters.
 ///
@@ -38,6 +40,10 @@ pub enum Mutations {
     AddRecurrentConnection { chance: f64 },
     /// See [`Mutations::remove_node`].
     RemoveNode { chance: f64 },
+    /// See [`Mutations::remove_connection`].
+    RemoveConnection { chance: f64 },
+    /// See [`Mutations::remove_recurrent_connection`].
+    RemoveRecurrentConnection { chance: f64 },
 }
 
 impl Mutations {
@@ -88,6 +94,16 @@ impl Mutations {
             &Mutations::RemoveNode { chance } => {
                 if rng.gamble(chance) {
                     return Self::remove_node(genome, rng);
+                }
+            }
+            &Mutations::RemoveConnection { chance } => {
+                if rng.gamble(chance) {
+                    return Self::remove_connection(genome, rng);
+                }
+            }
+            &Mutations::RemoveRecurrentConnection { chance } => {
+                if rng.gamble(chance) {
+                    return Self::remove_recurrent_connection(genome, rng);
                 }
             }
         }

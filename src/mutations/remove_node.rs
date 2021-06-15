@@ -147,6 +147,6 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(!genome.remove_node_with_context(&mut gc).is_ok())
+        assert!(genome.remove_node_with_context(&mut gc).is_err())
     }
 }
