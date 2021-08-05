@@ -1,4 +1,4 @@
-//! Lists constant functions matching the `Activation` enum variants.
+//! Lists constant functions matching the [`Activation`] enum variants.
 //!
 //! The pool of activation functions is the same as in [this paper](https://weightagnostic.github.io/).
 
