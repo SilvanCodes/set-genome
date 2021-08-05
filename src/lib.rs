@@ -268,6 +268,22 @@ impl Genome {
         Mutations::remove_node(self, &mut context.rng)
     }
 
+    /// Calls the [`Mutations::remove_connection`] with `self`.
+    pub fn remove_connection_with_context(
+        &mut self,
+        context: &mut GenomeContext,
+    ) -> Result<(), &'static str> {
+        Mutations::remove_connection(self, &mut context.rng)
+    }
+
+    /// Calls the [`Mutations::remove_recurrent_connection`] with `self`.
+    pub fn remove_recurrent_connection_with_context(
+        &mut self,
+        context: &mut GenomeContext,
+    ) -> Result<(), &'static str> {
+        Mutations::remove_recurrent_connection(self, &mut context.rng)
+    }
+
     /// Calls the [`Mutations::add_connection`] with `self`.
     pub fn add_connection_with_context(
         &mut self,
