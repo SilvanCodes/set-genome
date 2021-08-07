@@ -15,9 +15,7 @@
 //! [NEAT algorithm]: http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf
 //! [here]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
 
-use genes::Connection;
-
-pub use genes::{activations, Id, IdGenerator};
+pub use genes::{activations, Connection, Id, IdGenerator, Node};
 pub use genome::Genome;
 pub use mutations::Mutations;
 pub use parameters::{Parameters, Structure};
