@@ -1,4 +1,4 @@
-use favannat::network::{EdgeLike, NetLike, NodeLike, Recurrent};
+use favannat::network::{EdgeLike, NetworkLike, NodeLike, Recurrent};
 
 use crate::{
     genes::{activations, Activation, Connection, Node},
@@ -38,7 +38,7 @@ impl EdgeLike for Connection {
     }
 }
 
-impl NetLike<Node, Connection> for Genome {
+impl NetworkLike<Node, Connection> for Genome {
     fn nodes(&self) -> Vec<&Node> {
         self.nodes().collect()
     }
