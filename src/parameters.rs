@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 /// let parameters = Parameters {
 ///     seed: None,
 ///     structure: Structure {
-///         inputs: 25,
-///         inputs_connected_percent: 1.0,
-///         outputs: 3,
+///         number_of_inputs: 25,
+///         number_of_outputs: 3,
+///         percent_of_connected_inputs: 1.0,
 ///         outputs_activation: Activation::Tanh,
 ///         weight_std_dev: 0.1,
 ///         weight_cap: 1.0,
@@ -67,9 +67,9 @@ use serde::{Deserialize, Serialize};
 /// Write a config file like so:
 /// ```toml
 /// [structure]
-/// inputs = 9
-/// outputs = 2
-/// inputs_connected_percent = 1.0
+/// number_of_inputs = 9
+/// number_of_outputs = 2
+/// percent_of_connected_inputs = 1.0
 /// outputs_activation = "Tanh"
 /// weight_std_dev = 0.1
 /// weight_cap = 1.0
@@ -192,11 +192,11 @@ impl Default for Parameters {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Structure {
     /// Number of input nodes.
-    pub inputs: usize,
-    /// Percent of input nodes initially connected to all poutput nodes.
-    pub inputs_connected_percent: f64,
+    pub number_of_inputs: usize,
     /// Number of output nodes.
-    pub outputs: usize,
+    pub number_of_outputs: usize,
+    /// Percent of input nodes initially connected to all poutput nodes.
+    pub percent_of_connected_inputs: f64,
     /// Activation function for all output nodes.
     pub outputs_activation: Activation,
     /// Standard deviation of a normal distribution that provides samples for weight perturbations.
@@ -208,9 +208,9 @@ pub struct Structure {
 impl Default for Structure {
     fn default() -> Self {
         Self {
-            inputs: 1,
-            inputs_connected_percent: 1.0,
-            outputs: 1,
+            number_of_inputs: 1,
+            number_of_outputs: 1,
+            percent_of_connected_inputs: 1.0,
             outputs_activation: Activation::Tanh,
             weight_std_dev: 0.1,
             weight_cap: 1.0,

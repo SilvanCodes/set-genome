@@ -30,10 +30,10 @@ impl Genome {
     /// It generates all necessary identities from the [`IdGenerator`].
     pub fn new(id_gen: &mut IdGenerator, structure: &Structure) -> Self {
         Genome {
-            inputs: (0..structure.inputs)
+            inputs: (0..structure.number_of_inputs)
                 .map(|_| Node::new(id_gen.next_id(), Activation::Linear))
                 .collect(),
-            outputs: (0..structure.outputs)
+            outputs: (0..structure.number_of_outputs)
                 .map(|_| Node::new(id_gen.next_id(), structure.outputs_activation))
                 .collect(),
             ..Default::default()
@@ -55,11 +55,10 @@ impl Genome {
 
     /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
     pub fn init(&mut self, rng: &mut GenomeRng, structure: &Structure) {
-        for input in self
-            .inputs
-            .iterate_with_random_offset(rng)
-            .take((structure.inputs_connected_percent * structure.inputs as f64).ceil() as usize)
-        {
+        for input in self.inputs.iterate_with_random_offset(rng).take(
+            (structure.percent_of_connected_inputs * structure.number_of_inputs as f64).ceil()
+                as usize,
+        ) {
             // connect to every output
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(

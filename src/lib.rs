@@ -72,11 +72,11 @@ mod rng;
 ///     seed: None,
 ///     structure: Structure {
 ///         // ten inputs
-///         inputs: 10,
-///         // 100% connected
-///         inputs_connected_percent: 1.0,
+///         number_of_inputs: 10,
 ///         // two outputs
-///         outputs: 2,
+///         number_of_outputs: 2,
+///         // 100% connected
+///         percent_of_connected_inputs: 1.0,
 ///         // specified output activation
 ///         outputs_activation: Activation::Tanh,
 ///         // delta distribution
@@ -98,11 +98,11 @@ mod rng;
 /// #     seed: None,
 /// #     structure: Structure {
 /// #         // ten inputs
-/// #         inputs: 10,
-/// #         // 100% connected
-/// #         inputs_connected_percent: 1.0,
+/// #         number_of_inputs: 10,
 /// #         // two outputs
-/// #         outputs: 2,
+/// #         number_of_outputs: 2,
+/// #         // 100% connected
+/// #         percent_of_connected_inputs: 1.0,
 /// #         // specified output activation
 /// #         outputs_activation: Activation::Tanh,
 /// #         // delta distribution
@@ -126,11 +126,11 @@ mod rng;
 /// #     seed: None,
 /// #     structure: Structure {
 /// #         // ten inputs
-/// #         inputs: 10,
-/// #         // 100% connected
-/// #         inputs_connected_percent: 1.0,
+/// #         number_of_inputs: 10,
 /// #         // two outputs
-/// #         outputs: 2,
+/// #         number_of_outputs: 2,
+/// #         // 100% connected
+/// #         percent_of_connected_inputs: 1.0,
 /// #         // specified output activation
 /// #         outputs_activation: Activation::Tanh,
 /// #         // delta distribution
@@ -144,7 +144,7 @@ mod rng;
 /// # let genome_context = GenomeContext::new(parameters);
 /// let genome_without_connections = genome_context.uninitialized_genome();
 /// ```
-/// Setting the `inputs_connected_percent` field in the [`parameters::Structure`] parameter to zero makes the
+/// Setting the `percent_of_connected_inputs` field in the [`parameters::Structure`] parameter to zero makes the
 /// "initialized" and "uninitialized" genome look the same.
 ///
 /// So we got ourselves a genome, let's mutate it: [`Genome::mutate_with_context`].
