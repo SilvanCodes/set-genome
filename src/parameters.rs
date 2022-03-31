@@ -203,6 +203,28 @@ impl Default for Parameters {
     }
 }
 
+impl Parameters {
+    /// The basic parameters allow for the mutations of weights (100% of the time 50% of the weights are mutated), new nodes (1% chance) and new connections (10% chance) and are meant to quickly get a general feel for how this crate works.
+    /// All nodes use the [`Activation::Tanh`] function.
+    pub fn basic(number_of_inputs: usize, number_of_outputs: usize) -> Self {
+        Self {
+            seed: Some(42),
+            structure: Structure::basic(number_of_inputs, number_of_outputs),
+            mutations: vec![
+                Mutations::ChangeWeights {
+                    chance: 1.0,
+                    percent_perturbed: 0.5,
+                },
+                Mutations::AddNode {
+                    chance: 0.01,
+                    activation_pool: vec![Activation::Tanh],
+                },
+                Mutations::AddConnection { chance: 0.1 },
+            ],
+        }
+    }
+}
+
 /// This struct describes the invariants of the ANN structure.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Structure {
@@ -229,6 +251,17 @@ impl Default for Structure {
             outputs_activation: Activation::Tanh,
             weight_std_dev: 0.1,
             weight_cap: 1.0,
+        }
+    }
+}
+
+impl Structure {
+    /// The basic structure connects every input to every output, uses a standard deviation of 0.1 for sampling weight mutations and caps weights between [-1, 1].
+    pub fn basic(number_of_inputs: usize, number_of_outputs: usize) -> Self {
+        Self {
+            number_of_inputs,
+            number_of_outputs,
+            ..Default::default()
         }
     }
 }

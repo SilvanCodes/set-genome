@@ -1,7 +1,32 @@
 //! This crate is supposed to act as the representation/reproduction aspect in neuroevolution algorithms and may be combined with arbitrary selection mechanisms.
 //!
+//! # What you can do with this crate
+//! ```
+//! # use set_genome::GenomeContext;
+//! # use favannat::{
+//! #   matrix::feedforward::fabricator::MatrixFeedForwardFabricator,
+//! #    network::{Evaluator, Fabricator},
+//! # };
+//! # use nalgebra::dmatrix;
+//! // Setup a genome context for networks with 10 inputs and 10 outputs.
+//! let mut genome_context = GenomeContext::basic(10, 10);
+//!
+//! // Initialize a genome.
+//! let mut genome = genome_context.initialized_genome();
+//!
+//! // Mutate a genome.
+//! genome.mutate_with_context(&mut genome_context);
+//!
+//! // Get a phenotype of the genome.
+//! let network = MatrixFeedForwardFabricator::fabricate(&genome).expect("Cool network.");
+//!
+//! // Evaluate a network on an input.
+//! let output = network.evaluate(dmatrix![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+//! ```
+//!
 //! # Getting started
-//! Head over to [`GenomeContext`] to understand how to use this crate.
+//!
+//! Head over to [`GenomeContext`] to understand how to use this crate in detail.
 //!
 //! # SET genome
 //!
@@ -174,6 +199,12 @@ pub struct GenomeContext {
 }
 
 impl GenomeContext {
+    /// Simple to get started, just specify the number of inputs and outputs.
+    /// Also see [`Parameters::basic`] and [`Structure::basic`].
+    pub fn basic(number_of_inputs: usize, number_of_outputs: usize) -> Self {
+        Self::new(Parameters::basic(number_of_inputs, number_of_outputs))
+    }
+
     /// Returns a new `GenomeContext` from the parameters.
     pub fn new(parameters: Parameters) -> Self {
         let mut id_gen = IdGenerator::default();
