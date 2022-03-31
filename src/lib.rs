@@ -198,24 +198,7 @@ impl Default for GenomeContext {
 impl Genome {
     /// Initialization connects the configured percent of inputs nodes to output nodes, i.e. it creates connection genes with random weights.
     pub fn init_with_context(&mut self, context: &mut GenomeContext) {
-        for input in self
-            .inputs
-            .iterate_with_random_offset(&mut context.rng)
-            .take(
-                (context.parameters.structure.inputs_connected_percent
-                    * context.parameters.structure.inputs as f64)
-                    .ceil() as usize,
-            )
-        {
-            // connect to every output
-            for output in self.outputs.iter() {
-                assert!(self.feed_forward.insert(Connection::new(
-                    input.id,
-                    context.rng.weight_perturbation(0.0),
-                    output.id
-                )));
-            }
-        }
+        self.init(&mut context.rng, &context.parameters.structure)
     }
 
     /// Apply all mutations listed in the [parameters of the context] with respect to their chance of happening.
