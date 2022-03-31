@@ -6,11 +6,16 @@ use crate::{
     rng::GenomeRng,
 };
 
+pub use self::error::MutationError;
+
+pub type MutationResult = Result<(), MutationError>;
+
 mod add_connection;
 mod add_node;
 mod add_recurrent_connection;
 mod change_activation;
 mod change_weights;
+mod error;
 mod remove_connection;
 mod remove_node;
 mod remove_recurrent_connection;
@@ -55,7 +60,7 @@ impl Mutations {
         genome: &mut Genome,
         rng: &mut GenomeRng,
         id_gen: &mut IdGenerator,
-    ) -> Result<(), &'static str> {
+    ) -> MutationResult {
         match self {
             &Mutations::ChangeWeights {
                 chance,

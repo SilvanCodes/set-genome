@@ -2,17 +2,14 @@ use rand::Rng;
 
 use crate::{genes::Connection, genome::Genome, rng::GenomeRng};
 
-use super::Mutations;
+use super::{MutationError, MutationResult, Mutations};
 
 impl Mutations {
     /// This mutation adds a recurrent connection to the `genome` when possible.
     /// It is possible when any two nodes [^details] are not yet connected with a recurrent connection.
     ///
     /// [^details]: "any two nodes" is technically not correct as the end node has to come from the intersection of the hidden and output nodes.
-    pub fn add_recurrent_connection(
-        genome: &mut Genome,
-        rng: &mut GenomeRng,
-    ) -> Result<(), &'static str> {
+    pub fn add_recurrent_connection(genome: &mut Genome, rng: &mut GenomeRng) -> MutationResult {
         let start_node_iterator = genome
             .inputs
             .iter()
@@ -44,15 +41,15 @@ impl Mutations {
                 )));
                 return Ok(());
             }
-            // no possible connection end present
         }
-        Err("no connection possible")
+        // no possible connection end present
+        Err(MutationError::CouldNotAddRecurrentConnection)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::GenomeContext;
+    use crate::{GenomeContext, MutationError};
 
     #[test]
     fn add_random_connection() {
@@ -77,8 +74,8 @@ mod tests {
             .add_recurrent_connection_with_context(&mut gc)
             .is_ok());
 
-        if let Err(message) = genome.add_connection_with_context(&mut gc) {
-            assert_eq!(message, "no connection possible");
+        if let Err(error) = genome.add_recurrent_connection_with_context(&mut gc) {
+            assert_eq!(error, MutationError::CouldNotAddRecurrentConnection);
         } else {
             unreachable!()
         }

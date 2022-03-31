@@ -17,7 +17,7 @@
 
 pub use genes::{activations, Connection, Id, IdGenerator, Node};
 pub use genome::Genome;
-pub use mutations::Mutations;
+pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
 pub use rng::GenomeRng;
 
@@ -222,10 +222,11 @@ impl Genome {
     ///
     /// [parameters of the context]: `Parameters`
     ///
-    pub fn mutate_with_context(&mut self, context: &mut GenomeContext) {
+    pub fn mutate_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
         for mutation in &context.parameters.mutations {
-            mutation.mutate(self, &mut context.rng, &mut context.id_gen);
+            mutation.mutate(self, &mut context.rng, &mut context.id_gen)?
         }
+        Ok(())
     }
 
     /// Calls [`Mutations::add_node`] with `self`, should [`Mutations::AddNode`] be listed in the context.
@@ -242,10 +243,7 @@ impl Genome {
     }
 
     /// Calls the [`Mutations::remove_node`] with `self`.
-    pub fn remove_node_with_context(
-        &mut self,
-        context: &mut GenomeContext,
-    ) -> Result<(), &'static str> {
+    pub fn remove_node_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
         Mutations::remove_node(self, &mut context.rng)
     }
 
@@ -253,7 +251,7 @@ impl Genome {
     pub fn remove_connection_with_context(
         &mut self,
         context: &mut GenomeContext,
-    ) -> Result<(), &'static str> {
+    ) -> MutationResult {
         Mutations::remove_connection(self, &mut context.rng)
     }
 
@@ -261,15 +259,12 @@ impl Genome {
     pub fn remove_recurrent_connection_with_context(
         &mut self,
         context: &mut GenomeContext,
-    ) -> Result<(), &'static str> {
+    ) -> MutationResult {
         Mutations::remove_recurrent_connection(self, &mut context.rng)
     }
 
     /// Calls the [`Mutations::add_connection`] with `self`.
-    pub fn add_connection_with_context(
-        &mut self,
-        context: &mut GenomeContext,
-    ) -> Result<(), &'static str> {
+    pub fn add_connection_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
         Mutations::add_connection(self, &mut context.rng)
     }
 
@@ -277,7 +272,7 @@ impl Genome {
     pub fn add_recurrent_connection_with_context(
         &mut self,
         context: &mut GenomeContext,
-    ) -> Result<(), &'static str> {
+    ) -> MutationResult {
         Mutations::add_recurrent_connection(self, &mut context.rng)
     }
 

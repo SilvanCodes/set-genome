@@ -1,12 +1,14 @@
 use rand::Rng;
 
-use crate::{Genome, Mutations};
+use crate::Genome;
+
+use super::{MutationError, MutationResult, Mutations};
 
 impl Mutations {
     /// Removes a node and all incoming and outgoing connections, should this be possible without introducing dangling structure.
     /// Dangling means the in- or out-degree of any hidden node is zero, i.e. it neither can receive nor propagate a signal.
     /// If it is not possible, no node will be removed.
-    pub fn remove_node(genome: &mut Genome, rng: &mut impl Rng) -> Result<(), &'static str> {
+    pub fn remove_node(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         if let Some(removable_node) = &genome
             .hidden
             .iter()
@@ -56,7 +58,7 @@ impl Mutations {
             assert!(genome.hidden.remove(removable_node));
             Ok(())
         } else {
-            Err("could not find removable node")
+            Err(MutationError::CouldNotRemoveNode)
         }
     }
 }
@@ -66,6 +68,7 @@ mod tests {
     use crate::{
         activations::Activation,
         genes::{Connection, Genes, Id, Node},
+        mutations::MutationError,
         Genome, GenomeContext,
     };
 
@@ -147,6 +150,10 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(genome.remove_node_with_context(&mut gc).is_err())
+        if let Err(error) = genome.remove_node_with_context(&mut gc) {
+            assert_eq!(error, MutationError::CouldNotRemoveNode);
+        } else {
+            unreachable!()
+        }
     }
 }

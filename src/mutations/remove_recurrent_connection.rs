@@ -1,14 +1,13 @@
 use rand::Rng;
 
-use crate::{Genome, Mutations};
+use crate::Genome;
+
+use super::{MutationError, MutationResult, Mutations};
 
 impl Mutations {
     /// Removes a recurrent connection if at least one is present in the genome.
     /// Does nothing when no recurrent connections exist.
-    pub fn remove_recurrent_connection(
-        genome: &mut Genome,
-        rng: &mut impl Rng,
-    ) -> Result<(), &'static str> {
+    pub fn remove_recurrent_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         if let Some(removable_connection) = &genome
             .recurrent
             .iter()
@@ -22,7 +21,7 @@ impl Mutations {
             assert!(genome.recurrent.remove(removable_connection));
             Ok(())
         } else {
-            Err("no recurrent connection is present")
+            Err(MutationError::CouldNotRemoveRecurrentConnection)
         }
     }
 }
@@ -32,6 +31,7 @@ mod tests {
     use crate::{
         activations::Activation,
         genes::{Connection, Genes, Id, Node},
+        mutations::MutationError,
         Genome, GenomeContext,
     };
 
@@ -98,8 +98,10 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(genome
-            .remove_recurrent_connection_with_context(&mut gc)
-            .is_err())
+        if let Err(error) = genome.remove_recurrent_connection_with_context(&mut gc) {
+            assert_eq!(error, MutationError::CouldNotRemoveRecurrentConnection);
+        } else {
+            unreachable!()
+        }
     }
 }

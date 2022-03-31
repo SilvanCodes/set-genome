@@ -2,14 +2,14 @@ use rand::Rng;
 
 use crate::{genes::Connection, genome::Genome, rng::GenomeRng};
 
-use super::Mutations;
+use super::{MutationError, MutationResult, Mutations};
 
 impl Mutations {
     /// This mutation adds a new feed-forward connection to the genome, should it be possible.
-    /// It is possible when any two nodes[^details] are not yet connected with a recurrent connection.
+    /// It is possible when any two nodes[^details] are not yet connected with a feed-forward connection.
     ///
     /// [^details]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
-    pub fn add_connection(genome: &mut Genome, rng: &mut GenomeRng) -> Result<(), &'static str> {
+    pub fn add_connection(genome: &mut Genome, rng: &mut GenomeRng) -> MutationResult {
         let start_node_iterator = genome.inputs.iter().chain(genome.hidden.iter());
         let end_node_iterator = genome.hidden.iter().chain(genome.outputs.iter());
 
@@ -41,15 +41,15 @@ impl Mutations {
                 )));
                 return Ok(());
             }
-            // no possible connection end present
         }
-        Err("no connection possible")
+        // no possible connection end present
+        Err(MutationError::CouldNotAddFeedForwardConnection)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::GenomeContext;
+    use crate::{GenomeContext, MutationError};
 
     #[test]
     fn add_random_connection() {
@@ -70,8 +70,8 @@ mod tests {
 
         assert!(genome.add_connection_with_context(&mut gc).is_ok());
 
-        if let Err(message) = genome.add_connection_with_context(&mut gc) {
-            assert_eq!(message, "no connection possible");
+        if let Err(error) = genome.add_connection_with_context(&mut gc) {
+            assert_eq!(error, MutationError::CouldNotAddFeedForwardConnection);
         } else {
             unreachable!()
         }
