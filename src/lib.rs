@@ -157,6 +157,8 @@ mod rng;
 /// - [`Mutations::change_activation`]
 /// - [`Mutations::change_weights`]
 /// - [`Mutations::remove_node`]
+/// - [`Mutations::remove_connection`]
+/// - [`Mutations::remove_recurrent_connection`]
 ///
 /// To evaluate the function encoded in the genome check [this crate].
 ///
@@ -219,6 +221,7 @@ impl Genome {
     }
 
     /// Apply all mutations listed in the [parameters of the context] with respect to their chance of happening.
+    /// If a mutation is listed multiple times it is applied multiple times.
     ///
     /// This will probably be the most common way to apply mutations to a genome.
     ///

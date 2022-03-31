@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// # Examples
 ///
-/// Manual:
+/// ## Code
+///
+/// The following lists everything that is possible to specify:
 /// ```
 /// use set_genome::{Parameters, Structure, Mutations, activations::Activation};
 ///
@@ -59,10 +61,14 @@ use serde::{Deserialize, Serialize};
 ///         },
 ///         Mutations::RemoveNode { chance: 0.001 },
 ///         Mutations::AddConnection { chance: 0.1 },
+///         Mutations::RemoveConnection { chance: 0.001 },
 ///         Mutations::AddRecurrentConnection { chance: 0.01 },
+///         Mutations::RemoveRecurrentConnection { chance: 0.001 },
 ///     ],
 /// };
 /// ```
+///
+/// ## Configuration
 ///
 /// Write a config file like so:
 /// ```toml
@@ -122,7 +128,16 @@ use serde::{Deserialize, Serialize};
 ///     "Inverse",
 ///     "Absolute",
 /// ]
+///
+/// [[mutations]]
+/// type = "remove_connection"
+/// chance = 0.001
+///
+/// [[mutations]]
+/// type = "remove_recurrent_connection"
+/// chance = 0.001
 /// ```
+///
 /// And then read the file:
 ///
 /// ```text
