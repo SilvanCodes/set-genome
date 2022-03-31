@@ -11,9 +11,25 @@
 //! which very much is a formalization and progression of the ideas NEAT introduced regarding the genome.
 //! The thesis describing this genome and other ideas can be found [here], a paper focusing just on the SET encoding will follow soon.
 //!
+//! # Features
+//!
+//! This crate exposes the 'favannat' feature. [favannat] is a library to translate the genome into an executable form and also to execute it.
+//! It can be seen as a phenotype of the genome.
+//! The feature is enabled by default as probably you want to evaluate your evolved genomes, but disabling it is as easy as this:
+//!
+//! ```toml
+//! [dependencies]
+//! set-genome = { version = "x.x.x", default-features = false }
+//! ```
+//!
+//! If you are interested how they connect, [see here].
+//! favannat can be used to evaluate other data structures of yours, too, if they are [`favannat::network::NetworkLike`]. ;)
+//!
 //! [crossover]: `Genome::cross_in`
 //! [NEAT algorithm]: http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf
 //! [here]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
+//! [favannat]: https://docs.rs/favannat
+//! [see here]: https://github.com/SilvanCodes/set-genome/blob/main/src/favannat_impl.rs
 
 pub use genes::{activations, Connection, Id, IdGenerator, Node};
 pub use genome::Genome;
@@ -21,6 +37,7 @@ pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
 pub use rng::GenomeRng;
 
+#[cfg(feature = "favannat")]
 mod favannat_impl;
 mod genes;
 mod genome;
