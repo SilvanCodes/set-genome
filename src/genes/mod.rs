@@ -4,7 +4,13 @@
 
 use rand::{prelude::IteratorRandom, prelude::SliceRandom, Rng};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, hash::Hash, iter::FromIterator, ops::Deref, ops::DerefMut};
+use std::{
+    collections::{hash_map::DefaultHasher, HashSet},
+    hash::{Hash, Hasher},
+    iter::FromIterator,
+    ops::Deref,
+    ops::DerefMut,
+};
 
 mod connections;
 mod id;
@@ -20,8 +26,22 @@ pub use nodes::{
 pub trait Gene: Eq + Hash {}
 
 impl<U: Gene, T: Eq + Hash + Deref<Target = U>> Gene for T {}
-#[derive(Debug, Clone, Deserialize, Serialize)]
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Genes<T: Gene>(pub HashSet<T>);
+
+// see here: https://stackoverflow.com/questions/60882381/what-is-the-fastest-correct-way-to-detect-that-there-are-no-duplicates-in-a-json/60884343#60884343
+impl<T: Gene> Hash for Genes<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let mut hash = 0;
+        for gene in &self.0 {
+            let mut gene_hasher = DefaultHasher::new();
+            gene.hash(&mut gene_hasher);
+            hash ^= gene_hasher.finish();
+        }
+        state.write_u64(hash);
+    }
+}
 
 impl<T: Gene> Default for Genes<T> {
     fn default() -> Self {

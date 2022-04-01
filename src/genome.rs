@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 /// More and more knowledge from there will find its way into this documentaion over time.
 ///
 /// [thesis]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Genome {
     pub inputs: Genes<Node>,
     pub hidden: Genes<Node>,
@@ -222,6 +222,11 @@ impl Genome {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        collections::hash_map::DefaultHasher,
+        hash::{Hash, Hasher},
+    };
+
     use super::Genome;
     use crate::{
         genes::{Activation, Connection, Genes, Id, Node},
@@ -572,5 +577,72 @@ mod tests {
 
         // factor 2 times 2 different genes over 3 total genes over factor 2
         assert!((delta - 2.0 * 2.0 / 3.0 / 2.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn hash_genome() {
+        let genome_0 = Genome {
+            inputs: Genes(
+                vec![
+                    Node::new(Id(1), Activation::Linear),
+                    Node::new(Id(0), Activation::Linear),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            outputs: Genes(
+                vec![Node::new(Id(2), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+
+            feed_forward: Genes(
+                vec![Connection::new(Id(0), 1.0, Id(1))]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+
+        let genome_1 = Genome {
+            inputs: Genes(
+                vec![
+                    Node::new(Id(0), Activation::Linear),
+                    Node::new(Id(1), Activation::Linear),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            outputs: Genes(
+                vec![Node::new(Id(2), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+
+            feed_forward: Genes(
+                vec![Connection::new(Id(0), 1.0, Id(1))]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+
+        assert_eq!(genome_0, genome_1);
+
+        let mut hasher = DefaultHasher::new();
+        genome_0.hash(&mut hasher);
+        let genome_0_hash = hasher.finish();
+
+        let mut hasher = DefaultHasher::new();
+        genome_1.hash(&mut hasher);
+        let genome_1_hash = hasher.finish();
+
+        assert_eq!(genome_0_hash, genome_1_hash);
     }
 }
