@@ -33,19 +33,19 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::GenomeContext;
+    use crate::{Genome, Parameters};
 
     #[test]
     fn change_activation() {
-        let mut gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.initialized_genome();
+        let mut genome = Genome::initialized(&parameters.structure);
 
-        genome.add_node_with_context(&mut gc);
+        genome.add_node_with_context(&parameters);
 
         let old_activation = genome.hidden.iter().next().unwrap().activation;
 
-        genome.change_activation_with_context(&mut gc);
+        genome.change_activation_with_context(&parameters);
 
         assert_ne!(
             genome.hidden.iter().next().unwrap().activation,

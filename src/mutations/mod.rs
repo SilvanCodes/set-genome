@@ -1,4 +1,4 @@
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{genes::Activation, genome::Genome};
@@ -57,7 +57,14 @@ impl Mutations {
     /// The user needs to supply the [`GenomeRng`] and [`IdGenerator`] manually when using this method directly.
     /// Use the [`crate::GenomeContext`] and the genomes `<>_with_context` functions to avoid manually handling those.
     pub fn mutate(&self, genome: &mut Genome) -> MutationResult {
-        let mut rng = SmallRng::from_entropy();
+        // Seed RNG from hash of genome?
+        // Same RNG seed for same structure.
+        // Connection weights are not used to calculate hash.
+        // Node activations are not used to calculate hash.
+        //
+        // When and why would I want the RNG to spit out identical values?
+
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         match self {
             &Mutations::ChangeWeights {

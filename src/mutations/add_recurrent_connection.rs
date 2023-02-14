@@ -49,13 +49,13 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GenomeContext, MutationError};
+    use crate::{Genome, MutationError, Parameters};
 
     #[test]
     fn add_random_connection() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.initialized_genome();
+        let mut genome = Genome::initialized(&parameters.structure);
 
         assert!(genome.add_recurrent_connection_with_context().is_ok());
 
@@ -64,9 +64,9 @@ mod tests {
 
     #[test]
     fn dont_add_same_connection_twice() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.initialized_genome();
+        let mut genome = Genome::initialized(&parameters.structure);
 
         assert!(genome.add_recurrent_connection_with_context().is_ok());
 

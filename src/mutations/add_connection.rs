@@ -10,6 +10,12 @@ impl Mutations {
     ///
     /// [^details]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
     pub fn add_connection(genome: &mut Genome, rng: &mut SmallRng) -> MutationResult {
+        // POTENTIAL BIAS: just chaining the iterators and starting "somewhere" in the iterator
+        // seems like will at least in the long run heavily bias towards sampling hidden nodes.
+        // This is because the amount of hidden nodes can grow while the number of inputs is fixed.
+        // "starting somewhere" is ever more likely to hit a hidden node, which will then in expectation
+        // be followed by (#hidden nodes / 2) more hidden nodes.
+        // I should probably collect and shuffle for more of a fair distribution.
         let start_node_iterator = genome.inputs.iter().chain(genome.hidden.iter());
         let end_node_iterator = genome.hidden.iter().chain(genome.outputs.iter());
 
@@ -49,13 +55,13 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GenomeContext, MutationError};
+    use crate::{Genome, MutationError, Parameters};
 
     #[test]
     fn add_random_connection() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.uninitialized_genome();
+        let mut genome = Genome::new(&parameters.structure);
 
         assert!(genome.add_connection_with_context().is_ok());
 
@@ -64,9 +70,9 @@ mod tests {
 
     #[test]
     fn dont_add_same_connection_twice() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.uninitialized_genome();
+        let mut genome = Genome::new(&parameters.structure);
 
         assert!(genome.add_connection_with_context().is_ok());
 

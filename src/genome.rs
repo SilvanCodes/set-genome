@@ -5,7 +5,7 @@ use crate::{
     parameters::Structure,
 };
 
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 /// This is the core data structure this crate revoles around.
@@ -28,7 +28,7 @@ impl Genome {
     /// Creates a new genome according to the [`Structure`] it is given.
     /// It generates all necessary identities from the [`IdGenerator`].
     pub fn new(structure: &Structure) -> Self {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::seed_from_u64(structure.seed);
 
         Genome {
             inputs: (0..structure.number_of_inputs)
@@ -39,6 +39,12 @@ impl Genome {
                 .collect(),
             ..Default::default()
         }
+    }
+
+    pub fn initialized(structure: &Structure) -> Self {
+        let mut genome = Genome::new(structure);
+        genome.init(structure);
+        genome
     }
 
     /// Returns an iterator over references to all node genes (input + hidden + output) in the genome.
@@ -56,7 +62,7 @@ impl Genome {
 
     /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
     pub fn init(&mut self, structure: &Structure) {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         for input in self.inputs.iterate_with_random_offset(&mut rng).take(
             (structure.percent_of_connected_inputs * structure.number_of_inputs as f64).ceil()
@@ -87,10 +93,15 @@ impl Genome {
     /// For connection genes present in both genomes flip a coin to determine the weight inside the new genome.
     /// For node genes present in both genomes flip a coin to determine the activation function inside the new genome.
     /// Any structure not present in other is taken over unchanged from `self`.
-    pub fn cross_in(&self, other: &Self, rng: &mut impl Rng) -> Self {
-        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, rng);
-        let recurrent = self.recurrent.cross_in(&other.recurrent, rng);
-        let hidden = self.hidden.cross_in(&other.hidden, rng);
+    pub fn cross_in(&self, other: &Self) -> Self {
+        // I could instantiate a SmallRng right here.
+        // Would that be a problem?
+        // Might slow things down a little bit.
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+
+        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &mut rng);
+        let recurrent = self.recurrent.cross_in(&other.recurrent, &mut rng);
+        let hidden = self.hidden.cross_in(&other.hidden, &mut rng);
 
         Genome {
             feed_forward,
@@ -230,12 +241,10 @@ mod tests {
         hash::{Hash, Hasher},
     };
 
-    use rand::{rngs::SmallRng, SeedableRng};
-
     use super::Genome;
     use crate::{
         genes::{Activation, Connection, Genes, Id, Node},
-        GenomeContext,
+        Parameters,
     };
 
     #[test]
@@ -360,21 +369,20 @@ mod tests {
 
     #[test]
     fn crossover() {
-        let gc = GenomeContext::default();
-        let mut rng = SmallRng::from_entropy();
+        let parameters = Parameters::default();
 
-        let mut genome_0 = gc.initialized_genome();
-        let mut genome_1 = gc.initialized_genome();
+        let mut genome_0 = Genome::initialized(&parameters.structure);
+        let mut genome_1 = Genome::initialized(&parameters.structure);
 
         // mutate genome_0
-        genome_0.add_node_with_context(&gc);
+        genome_0.add_node_with_context(&parameters);
 
         // mutate genome_1
-        genome_1.add_node_with_context(&gc);
-        genome_1.add_node_with_context(&gc);
+        genome_1.add_node_with_context(&parameters);
+        genome_1.add_node_with_context(&parameters);
 
         // shorter genome is fitter genome
-        let offspring = genome_0.cross_in(&genome_1, &mut rng);
+        let offspring = genome_0.cross_in(&genome_1);
 
         assert_eq!(offspring.hidden.len(), 1);
         assert_eq!(offspring.feed_forward.len(), 3);
@@ -382,9 +390,9 @@ mod tests {
 
     #[test]
     fn detect_no_cycle() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let genome = gc.initialized_genome();
+        let genome = Genome::initialized(&parameters.structure);
 
         let input = genome.inputs.iter().next().unwrap();
         let output = genome.outputs.iter().next().unwrap();
@@ -394,9 +402,9 @@ mod tests {
 
     #[test]
     fn detect_cycle() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let genome = gc.initialized_genome();
+        let genome = Genome::initialized(&parameters.structure);
 
         let input = genome.inputs.iter().next().unwrap();
         let output = genome.outputs.iter().next().unwrap();
@@ -406,7 +414,6 @@ mod tests {
 
     #[test]
     fn crossover_no_cycle() {
-        let mut rng = SmallRng::from_entropy();
         // assumption:
         // crossover of equal fitness genomes should not produce cycles
         // prerequisits:
@@ -461,7 +468,7 @@ mod tests {
             .feed_forward
             .insert(Connection::new(Id(3), 1.0, Id(2)));
 
-        let offspring = genome_0.cross_in(&genome_1, &mut rng);
+        let offspring = genome_0.cross_in(&genome_1);
 
         for connection0 in offspring.feed_forward.iter() {
             for connection1 in offspring.feed_forward.iter() {

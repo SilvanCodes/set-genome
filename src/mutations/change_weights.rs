@@ -44,17 +44,17 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::GenomeContext;
+    use crate::{Genome, Parameters};
 
     #[test]
     fn change_weights() {
-        let mut gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.initialized_genome();
+        let mut genome = Genome::initialized(&parameters.structure);
 
         let old_weight = genome.feed_forward.iter().next().unwrap().weight;
 
-        genome.change_weights_with_context(&mut gc);
+        genome.change_weights_with_context(&parameters);
 
         assert!(
             (old_weight - genome.feed_forward.iter().next().unwrap().weight).abs() > f64::EPSILON

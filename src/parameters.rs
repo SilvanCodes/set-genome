@@ -15,14 +15,12 @@ use serde::{Deserialize, Serialize};
 /// use set_genome::{Parameters, Structure, Mutations, activations::Activation};
 ///
 /// let parameters = Parameters {
-///     seed: None,
 ///     structure: Structure {
 ///         number_of_inputs: 25,
 ///         number_of_outputs: 3,
 ///         percent_of_connected_inputs: 1.0,
 ///         outputs_activation: Activation::Tanh,
-///         weight_std_dev: 0.1,
-///         weight_cap: 1.0,
+///         seed: 42
 ///     },
 ///     mutations: vec![
 ///         Mutations::ChangeWeights {
@@ -149,8 +147,6 @@ use serde::{Deserialize, Serialize};
 ///
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Parameters {
-    /// Seed for the RNG.
-    pub seed: Option<u64>,
     /// Describes basic structure of the ANN.
     pub structure: Structure,
     /// List of mutations that execute on [`crate::Genome::mutate_with_context`]
@@ -160,7 +156,6 @@ pub struct Parameters {
 impl Default for Parameters {
     fn default() -> Self {
         Self {
-            seed: Some(42),
             structure: Structure::default(),
             mutations: vec![
                 Mutations::ChangeWeights {
@@ -210,7 +205,6 @@ impl Parameters {
     /// All nodes use the [`Activation::Tanh`] function.
     pub fn basic(number_of_inputs: usize, number_of_outputs: usize) -> Self {
         Self {
-            seed: Some(42),
             structure: Structure::basic(number_of_inputs, number_of_outputs),
             mutations: vec![
                 Mutations::ChangeWeights {
@@ -239,10 +233,8 @@ pub struct Structure {
     pub percent_of_connected_inputs: f64,
     /// Activation function for all output nodes.
     pub outputs_activation: Activation,
-    /// Standard deviation of a normal distribution that provides samples for weight perturbations.
-    pub weight_std_dev: f64,
-    /// Constrains connection weights to the range [-weight_cap, weight_cap].
-    pub weight_cap: f64,
+    /// Seed to generate the initial node Ids and connection weights.
+    pub seed: u64,
 }
 
 impl Default for Structure {
@@ -252,8 +244,7 @@ impl Default for Structure {
             number_of_outputs: 1,
             percent_of_connected_inputs: 1.0,
             outputs_activation: Activation::Tanh,
-            weight_std_dev: 0.1,
-            weight_cap: 1.0,
+            seed: 42,
         }
     }
 }

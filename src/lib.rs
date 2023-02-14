@@ -60,7 +60,7 @@ pub use genes::{activations, Connection, Id, Node};
 pub use genome::Genome;
 pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::{rngs::SmallRng, thread_rng, SeedableRng};
 
 #[cfg(feature = "favannat")]
 mod favannat_impl;
@@ -93,7 +93,6 @@ mod parameters;
 /// use set_genome::{GenomeContext, activations::Activation, Parameters, Structure};
 ///
 /// let parameters = Parameters {
-///     seed: None,
 ///     structure: Structure {
 ///         // ten inputs
 ///         number_of_inputs: 10,
@@ -103,10 +102,8 @@ mod parameters;
 ///         percent_of_connected_inputs: 1.0,
 ///         // specified output activation
 ///         outputs_activation: Activation::Tanh,
-///         // delta distribution
-///         weight_std_dev: 0.1,
-///         // intervall constraint, applies as [-weight_cap, weight_cap]
-///         weight_cap: 1.0,
+///         // seed for initial genome construction
+///         seed: 42
 ///     },
 ///     mutations: vec![],
 /// };
@@ -119,7 +116,6 @@ mod parameters;
 /// # use set_genome::{GenomeContext, activations::Activation, Parameters, Structure};
 /// #
 /// # let parameters = Parameters {
-/// #     seed: None,
 /// #     structure: Structure {
 /// #         // ten inputs
 /// #         number_of_inputs: 10,
@@ -129,10 +125,8 @@ mod parameters;
 /// #         percent_of_connected_inputs: 1.0,
 /// #         // specified output activation
 /// #         outputs_activation: Activation::Tanh,
-/// #         // delta distribution
-/// #         weight_std_dev: 0.1,
-/// #         // intervall constraint, applies as [-weight_cap, weight_cap]
-/// #         weight_cap: 1.0,
+///           // seed for initial genome construction
+///           seed: 42
 /// #     },
 /// #     mutations: vec![],
 /// # };
@@ -147,7 +141,6 @@ mod parameters;
 /// # use set_genome::{GenomeContext, activations::Activation, Parameters, Structure};
 /// #
 /// # let parameters = Parameters {
-/// #     seed: None,
 /// #     structure: Structure {
 /// #         // ten inputs
 /// #         number_of_inputs: 10,
@@ -157,10 +150,9 @@ mod parameters;
 /// #         percent_of_connected_inputs: 1.0,
 /// #         // specified output activation
 /// #         outputs_activation: Activation::Tanh,
-/// #         // delta distribution
-/// #         weight_std_dev: 0.1,
-/// #         // intervall constraint, applies as [-weight_cap, weight_cap]
-/// #         weight_cap: 1.0,
+///           // seed for initial genome construction
+///           seed: 42
+///
 /// #     },
 /// #     mutations: vec![],
 /// # };
@@ -189,54 +181,16 @@ mod parameters;
 /// [thesis]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
 /// [this crate]: https://crates.io/crates/favannat
 ///
-pub struct GenomeContext {
+pub struct GonnerGenomeContext {
     pub parameters: Parameters,
     initialized_genome: Genome,
     uninitialized_genome: Genome,
 }
 
-impl GenomeContext {
-    /// Simple to get started, just specify the number of inputs and outputs.
-    /// Also see [`Parameters::basic`] and [`Structure::basic`].
-    pub fn basic(number_of_inputs: usize, number_of_outputs: usize) -> Self {
-        Self::new(Parameters::basic(number_of_inputs, number_of_outputs))
-    }
-
-    /// Returns a new `GenomeContext` from the parameters.
-    pub fn new(parameters: Parameters) -> Self {
-        let uninitialized_genome = Genome::new(&parameters.structure);
-
-        let mut initialized_genome = uninitialized_genome.clone();
-        initialized_genome.init(&parameters.structure);
-
-        Self {
-            parameters,
-            initialized_genome,
-            uninitialized_genome,
-        }
-    }
-
-    /// Returns an initialized genome, see [`Genome::init_with_context`].
-    pub fn initialized_genome(&self) -> Genome {
-        self.initialized_genome.clone()
-    }
-
-    /// Returns an uninitialized genome, see [`Genome::init_with_context`].
-    pub fn uninitialized_genome(&self) -> Genome {
-        self.uninitialized_genome.clone()
-    }
-}
-
-impl Default for GenomeContext {
-    fn default() -> Self {
-        Self::new(Parameters::default())
-    }
-}
-
 impl Genome {
     /// Initialization connects the configured percent of inputs nodes to output nodes, i.e. it creates connection genes with random weights.
-    pub fn init_with_context(&mut self, context: &GenomeContext) {
-        self.init(&context.parameters.structure)
+    pub fn init_with_context(&mut self, parameters: &Parameters) {
+        self.init(&parameters.structure)
     }
 
     /// Apply all mutations listed in the [parameters of the context] with respect to their chance of happening.
@@ -261,8 +215,8 @@ impl Genome {
     ///
     /// [parameters of the context]: `Parameters`
     ///
-    pub fn mutate_with_context(&mut self, context: &GenomeContext) -> MutationResult {
-        for mutation in &context.parameters.mutations {
+    pub fn mutate_with_context(&mut self, parameters: &Parameters) -> MutationResult {
+        for mutation in &parameters.mutations {
             // gamble for application of mutation right here instead of in mutate() ??
             mutation.mutate(self)?
         }
@@ -271,10 +225,10 @@ impl Genome {
 
     /// Calls [`Mutations::add_node`] with `self`, should [`Mutations::AddNode`] be listed in the context.
     /// It needs to be listed as it provides parameters.
-    pub fn add_node_with_context(&mut self, context: &GenomeContext) {
-        let mut rng = SmallRng::from_entropy();
+    pub fn add_node_with_context(&mut self, parameters: &Parameters) {
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
-        for mutation in &context.parameters.mutations {
+        for mutation in &parameters.mutations {
             if let Mutations::AddNode {
                 activation_pool, ..
             } = mutation
@@ -286,45 +240,45 @@ impl Genome {
 
     /// Calls the [`Mutations::remove_node`] with `self`.
     pub fn remove_node_with_context(&mut self) -> MutationResult {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         Mutations::remove_node(self, &mut rng)
     }
 
     /// Calls the [`Mutations::remove_connection`] with `self`.
     pub fn remove_connection_with_context(&mut self) -> MutationResult {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         Mutations::remove_connection(self, &mut rng)
     }
 
     /// Calls the [`Mutations::remove_recurrent_connection`] with `self`.
     pub fn remove_recurrent_connection_with_context(&mut self) -> MutationResult {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         Mutations::remove_recurrent_connection(self, &mut rng)
     }
 
     /// Calls the [`Mutations::add_connection`] with `self`.
     pub fn add_connection_with_context(&mut self) -> MutationResult {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         Mutations::add_connection(self, &mut rng)
     }
 
     /// Calls the [`Mutations::add_recurrent_connection`] with `self`.
     pub fn add_recurrent_connection_with_context(&mut self) -> MutationResult {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         Mutations::add_recurrent_connection(self, &mut rng)
     }
 
     /// Calls [`Mutations::change_activation`] with `self`, should [`Mutations::ChangeActivation`] be listed in the context.
     /// It needs to be listed as it provides parameters.
-    pub fn change_activation_with_context(&mut self, context: &GenomeContext) {
-        let mut rng = SmallRng::from_entropy();
+    pub fn change_activation_with_context(&mut self, parameters: &Parameters) {
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
-        for mutation in &context.parameters.mutations {
+        for mutation in &parameters.mutations {
             if let Mutations::ChangeActivation {
                 activation_pool, ..
             } = mutation
@@ -336,10 +290,10 @@ impl Genome {
 
     /// Calls [`Mutations::change_weights`] with `self`, should [`Mutations::ChangeWeights`] be listed in the context.
     /// It needs to be listed as it provides parameters.
-    pub fn change_weights_with_context(&mut self, context: &GenomeContext) {
-        let mut rng = SmallRng::from_entropy();
+    pub fn change_weights_with_context(&mut self, parameters: &Parameters) {
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
-        for mutation in &context.parameters.mutations {
+        for mutation in &parameters.mutations {
             if let Mutations::ChangeWeights {
                 percent_perturbed,
                 weight_cap,

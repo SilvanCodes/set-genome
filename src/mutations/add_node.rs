@@ -42,16 +42,30 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::GenomeContext;
+    use crate::{Genome, Parameters};
 
     #[test]
     fn add_random_node() {
-        let mut gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome = gc.initialized_genome();
+        let mut genome = Genome::initialized(&parameters.structure);
 
-        genome.add_node_with_context(&mut gc);
+        genome.add_node_with_context(&parameters);
 
         assert_eq!(genome.feed_forward.len(), 3);
+    }
+
+    #[test]
+    fn same_structure_same_id() {
+        let parameters = Parameters::default();
+
+        let mut genome1 = Genome::initialized(&parameters.structure);
+        let mut genome2 = Genome::initialized(&parameters.structure);
+
+        genome1.add_node_with_context(&parameters);
+
+        genome2.add_node_with_context(&parameters);
+
+        assert_eq!(genome1.hidden, genome2.hidden);
     }
 }
