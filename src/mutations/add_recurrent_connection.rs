@@ -1,4 +1,4 @@
-use rand::{rngs::SmallRng, Rng};
+use rand::Rng;
 
 use crate::{genes::Connection, genome::Genome};
 
@@ -9,7 +9,7 @@ impl Mutations {
     /// It is possible when any two nodes [^details] are not yet connected with a recurrent connection.
     ///
     /// [^details]: "any two nodes" is technically not correct as the end node has to come from the intersection of the hidden and output nodes.
-    pub fn add_recurrent_connection(genome: &mut Genome, rng: &mut SmallRng) -> MutationResult {
+    pub fn add_recurrent_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         let start_node_iterator = genome
             .inputs
             .iter()
@@ -49,28 +49,28 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Genome, MutationError, Parameters};
+    use rand::thread_rng;
+
+    use crate::{Genome, MutationError, Mutations, Parameters};
 
     #[test]
     fn add_random_connection() {
-        let parameters = Parameters::default();
+        let mut genome = Genome::initialized(&Parameters::default());
 
-        let mut genome = Genome::initialized(&parameters.structure);
-
-        assert!(genome.add_recurrent_connection_with_context().is_ok());
+        Mutations::add_recurrent_connection(&mut genome, &mut thread_rng())
+            .expect("y no add recurrent connection");
 
         assert_eq!(genome.recurrent.len(), 1);
     }
 
     #[test]
     fn dont_add_same_connection_twice() {
-        let parameters = Parameters::default();
+        let mut genome = Genome::initialized(&Parameters::default());
 
-        let mut genome = Genome::initialized(&parameters.structure);
+        Mutations::add_recurrent_connection(&mut genome, &mut thread_rng())
+            .expect("y no add recurrent connection");
 
-        assert!(genome.add_recurrent_connection_with_context().is_ok());
-
-        if let Err(error) = genome.add_recurrent_connection_with_context() {
+        if let Err(error) = Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()) {
             assert_eq!(error, MutationError::CouldNotAddRecurrentConnection);
         } else {
             unreachable!()

@@ -1,4 +1,7 @@
-use std::collections::HashSet;
+use std::{
+    collections::{hash_map::DefaultHasher, HashSet},
+    hash::{Hash, Hasher},
+};
 
 use crate::{
     genes::{Activation, Connection, Genes, Id, Node},
@@ -24,11 +27,22 @@ pub struct Genome {
     pub recurrent: Genes<Connection>,
 }
 
+// impl Default for Genome {
+//     fn default() -> Self {
+//         Self::new(&Structure::default())
+//     }
+// }
+
 impl Genome {
     /// Creates a new genome according to the [`Structure`] it is given.
-    /// It generates all necessary identities from the [`IdGenerator`].
+    /// It generates all necessary identities based on an RNG seeded from a hash of the I/O configuration of the structure.
+    /// This allows genomes of identical I/O configuration to be crossed over in a meaningful way.
     pub fn new(structure: &Structure) -> Self {
-        let mut rng = SmallRng::seed_from_u64(structure.seed);
+        let mut seed_hasher = DefaultHasher::new();
+        structure.number_of_inputs.hash(&mut seed_hasher);
+        structure.number_of_outputs.hash(&mut seed_hasher);
+
+        let mut rng = SmallRng::seed_from_u64(seed_hasher.finish());
 
         Genome {
             inputs: (0..structure.number_of_inputs)
@@ -39,12 +53,6 @@ impl Genome {
                 .collect(),
             ..Default::default()
         }
-    }
-
-    pub fn initialized(structure: &Structure) -> Self {
-        let mut genome = Genome::new(structure);
-        genome.init(structure);
-        genome
     }
 
     /// Returns an iterator over references to all node genes (input + hidden + output) in the genome.
@@ -241,10 +249,12 @@ mod tests {
         hash::{Hash, Hasher},
     };
 
+    use rand::thread_rng;
+
     use super::Genome;
     use crate::{
         genes::{Activation, Connection, Genes, Id, Node},
-        Parameters,
+        Mutations, Parameters,
     };
 
     #[test]
@@ -371,15 +381,17 @@ mod tests {
     fn crossover() {
         let parameters = Parameters::default();
 
-        let mut genome_0 = Genome::initialized(&parameters.structure);
-        let mut genome_1 = Genome::initialized(&parameters.structure);
+        let mut genome_0 = Genome::initialized(&parameters);
+        let mut genome_1 = Genome::initialized(&parameters);
+
+        let rng = &mut thread_rng();
 
         // mutate genome_0
-        genome_0.add_node_with_context(&parameters);
+        Mutations::add_node(&Activation::all(), &mut genome_0, rng);
 
         // mutate genome_1
-        genome_1.add_node_with_context(&parameters);
-        genome_1.add_node_with_context(&parameters);
+        Mutations::add_node(&Activation::all(), &mut genome_1, rng);
+        Mutations::add_node(&Activation::all(), &mut genome_1, rng);
 
         // shorter genome is fitter genome
         let offspring = genome_0.cross_in(&genome_1);
@@ -392,7 +404,7 @@ mod tests {
     fn detect_no_cycle() {
         let parameters = Parameters::default();
 
-        let genome = Genome::initialized(&parameters.structure);
+        let genome = Genome::initialized(&parameters);
 
         let input = genome.inputs.iter().next().unwrap();
         let output = genome.outputs.iter().next().unwrap();
@@ -404,7 +416,7 @@ mod tests {
     fn detect_cycle() {
         let parameters = Parameters::default();
 
-        let genome = Genome::initialized(&parameters.structure);
+        let genome = Genome::initialized(&parameters);
 
         let input = genome.inputs.iter().next().unwrap();
         let output = genome.outputs.iter().next().unwrap();

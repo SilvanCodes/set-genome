@@ -1,4 +1,4 @@
-use rand::{prelude::IteratorRandom, rngs::SmallRng};
+use rand::{prelude::IteratorRandom, Rng};
 
 use crate::{
     genes::{Activation, Node},
@@ -13,7 +13,7 @@ impl Mutations {
     pub fn change_activation(
         activation_pool: &[Activation],
         genome: &mut Genome,
-        rng: &mut SmallRng,
+        rng: &mut impl Rng,
     ) {
         if let Some(node) = genome.hidden.random(rng) {
             let updated = Node::new(
@@ -33,19 +33,20 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Genome, Parameters};
+    use rand::thread_rng;
+
+    use crate::{activations::Activation, Genome, Mutations, Parameters};
 
     #[test]
     fn change_activation() {
-        let parameters = Parameters::default();
+        let mut genome = Genome::initialized(&Parameters::default());
+        let activation_pool = Activation::all();
 
-        let mut genome = Genome::initialized(&parameters.structure);
-
-        genome.add_node_with_context(&parameters);
+        Mutations::add_node(&activation_pool, &mut genome, &mut thread_rng());
 
         let old_activation = genome.hidden.iter().next().unwrap().activation;
 
-        genome.change_activation_with_context(&parameters);
+        Mutations::change_activation(&activation_pool, &mut genome, &mut thread_rng());
 
         assert_ne!(
             genome.hidden.iter().next().unwrap().activation,

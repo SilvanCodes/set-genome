@@ -1,4 +1,4 @@
-use rand::{prelude::SliceRandom, rngs::SmallRng};
+use rand::{prelude::SliceRandom, Rng};
 
 use crate::{
     genes::{Activation, Connection, Node},
@@ -10,7 +10,7 @@ use super::Mutations;
 impl Mutations {
     /// This mutation adds a new node to the genome by "splitting" an existing connection, i.e. the existing connection gets "re-routed" via the new node and the weight of the split connection is set to zero.
     /// The connection leading into the new node is of weight 1.0 and the connection originating from the new node has the same weight as the split connection (before it is zeroed).
-    pub fn add_node(activation_pool: &[Activation], genome: &mut Genome, rng: &mut SmallRng) {
+    pub fn add_node(activation_pool: &[Activation], genome: &mut Genome, rng: &mut impl Rng) {
         // select an connection gene and split
         let mut random_connection = genome.feed_forward.random(rng).cloned().unwrap();
 
@@ -42,29 +42,26 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Genome, Parameters};
+    use rand::thread_rng;
+
+    use crate::{activations::Activation, Genome, Mutations, Parameters};
 
     #[test]
     fn add_random_node() {
-        let parameters = Parameters::default();
+        let mut genome = Genome::initialized(&Parameters::default());
 
-        let mut genome = Genome::initialized(&parameters.structure);
-
-        genome.add_node_with_context(&parameters);
+        Mutations::add_node(&Activation::all(), &mut genome, &mut thread_rng());
 
         assert_eq!(genome.feed_forward.len(), 3);
     }
 
     #[test]
     fn same_structure_same_id() {
-        let parameters = Parameters::default();
+        let mut genome1 = Genome::initialized(&Parameters::default());
+        let mut genome2 = Genome::initialized(&Parameters::default());
 
-        let mut genome1 = Genome::initialized(&parameters.structure);
-        let mut genome2 = Genome::initialized(&parameters.structure);
-
-        genome1.add_node_with_context(&parameters);
-
-        genome2.add_node_with_context(&parameters);
+        Mutations::add_node(&Activation::all(), &mut genome1, &mut thread_rng());
+        Mutations::add_node(&Activation::all(), &mut genome2, &mut thread_rng());
 
         assert_eq!(genome1.hidden, genome2.hidden);
     }

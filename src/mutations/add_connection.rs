@@ -1,4 +1,4 @@
-use rand::{rngs::SmallRng, Rng};
+use rand::Rng;
 
 use crate::{genes::Connection, genome::Genome};
 
@@ -9,7 +9,7 @@ impl Mutations {
     /// It is possible when any two nodes[^details] are not yet connected with a feed-forward connection.
     ///
     /// [^details]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
-    pub fn add_connection(genome: &mut Genome, rng: &mut SmallRng) -> MutationResult {
+    pub fn add_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         // POTENTIAL BIAS: just chaining the iterators and starting "somewhere" in the iterator
         // seems like will at least in the long run heavily bias towards sampling hidden nodes.
         // This is because the amount of hidden nodes can grow while the number of inputs is fixed.
@@ -55,28 +55,25 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Genome, MutationError, Parameters};
+    use rand::thread_rng;
+
+    use crate::{Genome, MutationError, Mutations, Parameters};
 
     #[test]
     fn add_random_connection() {
-        let parameters = Parameters::default();
+        let mut genome = Genome::uninitialized(&Parameters::default());
 
-        let mut genome = Genome::new(&parameters.structure);
-
-        assert!(genome.add_connection_with_context().is_ok());
-
+        assert!(Mutations::add_connection(&mut genome, &mut thread_rng()).is_ok());
         assert_eq!(genome.feed_forward.len(), 1);
     }
 
     #[test]
     fn dont_add_same_connection_twice() {
-        let parameters = Parameters::default();
+        let mut genome = Genome::uninitialized(&Parameters::default());
 
-        let mut genome = Genome::new(&parameters.structure);
+        Mutations::add_connection(&mut genome, &mut thread_rng()).expect("add_connection");
 
-        assert!(genome.add_connection_with_context().is_ok());
-
-        if let Err(error) = genome.add_connection_with_context() {
+        if let Err(error) = Mutations::add_connection(&mut genome, &mut thread_rng()) {
             assert_eq!(error, MutationError::CouldNotAddFeedForwardConnection);
         } else {
             unreachable!()

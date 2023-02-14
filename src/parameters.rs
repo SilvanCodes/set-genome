@@ -149,7 +149,7 @@ use serde::{Deserialize, Serialize};
 pub struct Parameters {
     /// Describes basic structure of the ANN.
     pub structure: Structure,
-    /// List of mutations that execute on [`crate::Genome::mutate_with_context`]
+    /// List of mutations that execute on [`crate::Genome::mutate_with`]
     pub mutations: Vec<Mutations>,
 }
 

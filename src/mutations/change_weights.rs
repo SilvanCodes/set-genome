@@ -1,4 +1,4 @@
-use rand::rngs::SmallRng;
+use rand::Rng;
 
 use super::Mutations;
 use crate::genome::Genome;
@@ -9,7 +9,7 @@ impl Mutations {
         percent_perturbed: f64,
         weight_cap: f64,
         genome: &mut Genome,
-        rng: &mut SmallRng,
+        rng: &mut impl Rng,
     ) {
         let change_feed_forward_amount =
             (percent_perturbed * genome.feed_forward.len() as f64).ceil() as usize;
@@ -44,17 +44,17 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Genome, Parameters};
+    use rand::thread_rng;
+
+    use crate::{Genome, Mutations, Parameters};
 
     #[test]
     fn change_weights() {
-        let parameters = Parameters::default();
-
-        let mut genome = Genome::initialized(&parameters.structure);
+        let mut genome = Genome::initialized(&Parameters::default());
 
         let old_weight = genome.feed_forward.iter().next().unwrap().weight;
 
-        genome.change_weights_with_context(&parameters);
+        Mutations::change_weights(1.0, 1.0, &mut genome, &mut thread_rng());
 
         assert!(
             (old_weight - genome.feed_forward.iter().next().unwrap().weight).abs() > f64::EPSILON

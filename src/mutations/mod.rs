@@ -1,4 +1,4 @@
-use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{genes::Activation, genome::Genome};
@@ -19,7 +19,7 @@ mod remove_recurrent_connection;
 
 /// Lists all possible mutations with their corresponding parameters.
 ///
-/// Each mutation acts as a self-contained unit and has to be listed in the [`crate::Parameters::mutations`] field in order to take effect when calling [`crate::Genome::mutate_with_context`].
+/// Each mutation acts as a self-contained unit and has to be listed in the [`crate::Parameters::mutations`] field in order to take effect when calling [`crate::Genome::mutate_with`].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
@@ -54,18 +54,9 @@ pub enum Mutations {
 
 impl Mutations {
     /// Mutate a [`Genome`] but respects the associate `chance` field of the [`Mutations`] enum variants.
-    /// The user needs to supply the [`GenomeRng`] and [`IdGenerator`] manually when using this method directly.
-    /// Use the [`crate::GenomeContext`] and the genomes `<>_with_context` functions to avoid manually handling those.
-    pub fn mutate(&self, genome: &mut Genome) -> MutationResult {
-        // Seed RNG from hash of genome?
-        // Same RNG seed for same structure.
-        // Connection weights are not used to calculate hash.
-        // Node activations are not used to calculate hash.
-        //
-        // When and why would I want the RNG to spit out identical values?
-
-        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
-
+    /// The user needs to supply some RNG manually when using this method directly.
+    /// Use [`crate::Genome::mutate`] as the default API.
+    pub fn mutate(&self, genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         match self {
             &Mutations::ChangeWeights {
                 chance,
@@ -73,7 +64,7 @@ impl Mutations {
                 weight_cap,
             } => {
                 if rng.gen::<f64>() < chance {
-                    Self::change_weights(percent_perturbed, weight_cap, genome, &mut rng);
+                    Self::change_weights(percent_perturbed, weight_cap, genome, rng);
                 }
             }
             Mutations::AddNode {
@@ -81,17 +72,17 @@ impl Mutations {
                 activation_pool,
             } => {
                 if rng.gen::<f64>() < *chance {
-                    Self::add_node(activation_pool, genome, &mut rng)
+                    Self::add_node(activation_pool, genome, rng)
                 }
             }
             &Mutations::AddConnection { chance } => {
                 if rng.gen::<f64>() < chance {
-                    return Self::add_connection(genome, &mut rng);
+                    return Self::add_connection(genome, rng);
                 }
             }
             &Mutations::AddRecurrentConnection { chance } => {
                 if rng.gen::<f64>() < chance {
-                    return Self::add_recurrent_connection(genome, &mut rng);
+                    return Self::add_recurrent_connection(genome, rng);
                 }
             }
             Mutations::ChangeActivation {
@@ -99,22 +90,22 @@ impl Mutations {
                 activation_pool,
             } => {
                 if rng.gen::<f64>() < *chance {
-                    Self::change_activation(activation_pool, genome, &mut rng)
+                    Self::change_activation(activation_pool, genome, rng)
                 }
             }
             &Mutations::RemoveNode { chance } => {
                 if rng.gen::<f64>() < chance {
-                    return Self::remove_node(genome, &mut rng);
+                    return Self::remove_node(genome, rng);
                 }
             }
             &Mutations::RemoveConnection { chance } => {
                 if rng.gen::<f64>() < chance {
-                    return Self::remove_connection(genome, &mut rng);
+                    return Self::remove_connection(genome, rng);
                 }
             }
             &Mutations::RemoveRecurrentConnection { chance } => {
                 if rng.gen::<f64>() < chance {
-                    return Self::remove_recurrent_connection(genome, &mut rng);
+                    return Self::remove_recurrent_connection(genome, rng);
                 }
             }
         }

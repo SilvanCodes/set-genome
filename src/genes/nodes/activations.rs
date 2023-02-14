@@ -24,6 +24,24 @@ pub enum Activation {
     Squared,
 }
 
+impl Activation {
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::Linear,
+            Self::Sigmoid,
+            Self::Tanh,
+            Self::Gaussian,
+            Self::Step,
+            Self::Sine,
+            Self::Cosine,
+            Self::Inverse,
+            Self::Absolute,
+            Self::Relu,
+            Self::Squared,
+        ]
+    }
+}
+
 /// Returns the argument unchanged.
 pub const LINEAR: fn(f64) -> f64 = |val| val;
 
