@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::DefaultHasher, HashSet},
+    collections::HashSet,
     hash::{Hash, Hasher},
 };
 
@@ -9,6 +9,7 @@ use crate::{
 };
 
 use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
+use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 
 /// This is the core data structure this crate revoles around.
@@ -38,7 +39,7 @@ impl Genome {
     /// It generates all necessary identities based on an RNG seeded from a hash of the I/O configuration of the structure.
     /// This allows genomes of identical I/O configuration to be crossed over in a meaningful way.
     pub fn new(structure: &Structure) -> Self {
-        let mut seed_hasher = DefaultHasher::new();
+        let mut seed_hasher = SeaHasher::new();
         structure.number_of_inputs.hash(&mut seed_hasher);
         structure.number_of_outputs.hash(&mut seed_hasher);
 
@@ -102,9 +103,7 @@ impl Genome {
     /// For node genes present in both genomes flip a coin to determine the activation function inside the new genome.
     /// Any structure not present in other is taken over unchanged from `self`.
     pub fn cross_in(&self, other: &Self) -> Self {
-        // I could instantiate a SmallRng right here.
-        // Would that be a problem?
-        // Might slow things down a little bit.
+        // Instantiating an RNG for every call might slow things down.
         let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
 
         let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &mut rng);
@@ -244,12 +243,10 @@ impl Genome {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::hash_map::DefaultHasher,
-        hash::{Hash, Hasher},
-    };
+    use std::hash::{Hash, Hasher};
 
     use rand::thread_rng;
+    use seahash::SeaHasher;
 
     use super::Genome;
     use crate::{
@@ -659,11 +656,11 @@ mod tests {
 
         assert_eq!(genome_0, genome_1);
 
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = SeaHasher::new();
         genome_0.hash(&mut hasher);
         let genome_0_hash = hasher.finish();
 
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = SeaHasher::new();
         genome_1.hash(&mut hasher);
         let genome_1_hash = hasher.finish();
 

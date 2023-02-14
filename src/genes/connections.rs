@@ -1,6 +1,10 @@
 use rand::Rng;
+use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, collections::hash_map::DefaultHasher, hash::Hash, hash::Hasher};
+use std::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+};
 
 use super::{Gene, Id};
 
@@ -30,7 +34,7 @@ impl Connection {
     }
 
     pub fn next_id(&mut self) -> Id {
-        let mut id_hasher = DefaultHasher::new();
+        let mut id_hasher = SeaHasher::new();
         self.hash(&mut id_hasher);
         self.id_counter.hash(&mut id_hasher);
         self.id_counter += 1;
