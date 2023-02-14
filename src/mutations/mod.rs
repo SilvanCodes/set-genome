@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    genes::{Activation, IdGenerator},
-    genome::Genome,
-    rng::GenomeRng,
-};
+use crate::{genes::Activation, genome::Genome, rng::GenomeRng};
 
 pub use self::error::MutationError;
 
@@ -55,12 +51,7 @@ impl Mutations {
     /// Mutate a [`Genome`] but respects the associate `chance` field of the [`Mutations`] enum variants.
     /// The user needs to supply the [`GenomeRng`] and [`IdGenerator`] manually when using this method directly.
     /// Use the [`crate::GenomeContext`] and the genomes `<>_with_context` functions to avoid manually handling those.
-    pub fn mutate(
-        &self,
-        genome: &mut Genome,
-        rng: &mut GenomeRng,
-        id_gen: &mut IdGenerator,
-    ) -> MutationResult {
+    pub fn mutate(&self, genome: &mut Genome, rng: &mut GenomeRng) -> MutationResult {
         match self {
             &Mutations::ChangeWeights {
                 chance,
@@ -75,7 +66,7 @@ impl Mutations {
                 activation_pool,
             } => {
                 if rng.gamble(*chance) {
-                    Self::add_node(activation_pool, genome, rng, id_gen)
+                    Self::add_node(activation_pool, genome, rng)
                 }
             }
             &Mutations::AddConnection { chance } => {

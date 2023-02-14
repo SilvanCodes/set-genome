@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, hash::Hash, hash::Hasher};
+use std::{cmp::Ordering, collections::hash_map::DefaultHasher, hash::Hash, hash::Hasher};
 
 use super::{Gene, Id};
 
@@ -11,6 +11,7 @@ pub struct Connection {
     pub input: Id,
     pub output: Id,
     pub weight: f64,
+    pub id_counter: u64,
 }
 
 impl Connection {
@@ -19,10 +20,20 @@ impl Connection {
             input,
             output,
             weight,
+            id_counter: 0,
         }
     }
+
     pub fn id(&self) -> (Id, Id) {
         (self.input, self.output)
+    }
+
+    pub fn next_id(&mut self) -> Id {
+        let mut id_hasher = DefaultHasher::new();
+        self.hash(&mut id_hasher);
+        self.id_counter.hash(&mut id_hasher);
+        self.id_counter += 1;
+        Id(id_hasher.finish())
     }
 }
 

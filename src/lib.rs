@@ -56,7 +56,7 @@
 //! [favannat]: https://docs.rs/favannat
 //! [see here]: https://github.com/SilvanCodes/set-genome/blob/main/src/favannat_impl.rs
 
-pub use genes::{activations, Connection, Id, IdGenerator, Node};
+pub use genes::{activations, Connection, Id, Node};
 pub use genome::Genome;
 pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
@@ -191,7 +191,6 @@ mod rng;
 /// [this crate]: https://crates.io/crates/favannat
 ///
 pub struct GenomeContext {
-    pub id_gen: IdGenerator,
     pub rng: GenomeRng,
     pub parameters: Parameters,
     initialized_genome: Genome,
@@ -207,20 +206,18 @@ impl GenomeContext {
 
     /// Returns a new `GenomeContext` from the parameters.
     pub fn new(parameters: Parameters) -> Self {
-        let mut id_gen = IdGenerator::default();
         let mut rng = GenomeRng::new(
             parameters.seed.unwrap_or(42),
             parameters.structure.weight_std_dev,
             parameters.structure.weight_cap,
         );
 
-        let uninitialized_genome = Genome::new(&mut id_gen, &parameters.structure);
+        let uninitialized_genome = Genome::new(&parameters.structure);
 
         let mut initialized_genome = uninitialized_genome.clone();
         initialized_genome.init(&mut rng, &parameters.structure);
 
         Self {
-            id_gen,
             rng,
             parameters,
             initialized_genome,
@@ -275,7 +272,7 @@ impl Genome {
     ///
     pub fn mutate_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
         for mutation in &context.parameters.mutations {
-            mutation.mutate(self, &mut context.rng, &mut context.id_gen)?
+            mutation.mutate(self, &mut context.rng)?
         }
         Ok(())
     }
@@ -288,7 +285,7 @@ impl Genome {
                 activation_pool, ..
             } = mutation
             {
-                Mutations::add_node(activation_pool, self, &mut context.rng, &mut context.id_gen)
+                Mutations::add_node(activation_pool, self, &mut context.rng)
             }
         }
     }

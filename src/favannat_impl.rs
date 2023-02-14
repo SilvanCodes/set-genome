@@ -7,7 +7,7 @@ use crate::{
 
 impl NodeLike for Node {
     fn id(&self) -> usize {
-        self.id.0
+        self.id.0 as usize
     }
     fn activation(&self) -> fn(f64) -> f64 {
         match self.activation {
@@ -28,10 +28,10 @@ impl NodeLike for Node {
 
 impl EdgeLike for Connection {
     fn start(&self) -> usize {
-        self.input.0
+        self.input.0 as usize
     }
     fn end(&self) -> usize {
-        self.output.0
+        self.output.0 as usize
     }
     fn weight(&self) -> f64 {
         self.weight

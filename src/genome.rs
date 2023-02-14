@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
 use crate::{
-    genes::{Activation, Connection, Genes, Id, IdGenerator, Node},
+    genes::{Activation, Connection, Genes, Id, Node},
     parameters::Structure,
     rng::GenomeRng,
 };
 
-use rand::Rng;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 /// This is the core data structure this crate revoles around.
@@ -28,13 +28,15 @@ pub struct Genome {
 impl Genome {
     /// Creates a new genome according to the [`Structure`] it is given.
     /// It generates all necessary identities from the [`IdGenerator`].
-    pub fn new(id_gen: &mut IdGenerator, structure: &Structure) -> Self {
+    pub fn new(structure: &Structure) -> Self {
+        let mut rng = SmallRng::from_entropy();
+
         Genome {
             inputs: (0..structure.number_of_inputs)
-                .map(|_| Node::new(id_gen.next_id(), Activation::Linear))
+                .map(|_| Node::new(Id(rng.gen::<u64>()), Activation::Linear))
                 .collect(),
             outputs: (0..structure.number_of_outputs)
-                .map(|_| Node::new(id_gen.next_id(), structure.outputs_activation))
+                .map(|_| Node::new(Id(rng.gen::<u64>()), structure.outputs_activation))
                 .collect(),
             ..Default::default()
         }

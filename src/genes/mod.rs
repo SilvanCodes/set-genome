@@ -17,7 +17,7 @@ mod id;
 mod nodes;
 
 pub use connections::Connection;
-pub use id::{id_generator::IdGenerator, Id};
+pub use id::Id;
 pub use nodes::{
     activations::{self, Activation},
     Node,

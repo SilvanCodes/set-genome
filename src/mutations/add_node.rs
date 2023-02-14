@@ -1,7 +1,7 @@
 use rand::prelude::SliceRandom;
 
 use crate::{
-    genes::{Activation, Connection, IdGenerator, Node},
+    genes::{Activation, Connection, Node},
     genome::Genome,
     rng::GenomeRng,
 };
@@ -11,24 +11,11 @@ use super::Mutations;
 impl Mutations {
     /// This mutation adds a new node to the genome by "splitting" an existing connection, i.e. the existing connection gets "re-routed" via the new node and the weight of the split connection is set to zero.
     /// The connection leading into the new node is of weight 1.0 and the connection originating from the new node has the same weight as the split connection (before it is zeroed).
-    pub fn add_node(
-        activation_pool: &[Activation],
-        genome: &mut Genome,
-        rng: &mut GenomeRng,
-        id_gen: &mut IdGenerator,
-    ) {
+    pub fn add_node(activation_pool: &[Activation], genome: &mut Genome, rng: &mut GenomeRng) {
         // select an connection gene and split
         let mut random_connection = genome.feed_forward.random(rng).cloned().unwrap();
 
-        let id = id_gen
-            .cached_id_iter(random_connection.id())
-            .find(|&id| {
-                genome
-                    .hidden
-                    .get(&Node::new(id, Activation::Linear))
-                    .is_none()
-            })
-            .unwrap();
+        let id = random_connection.next_id();
 
         // construct new node gene
         let new_node = Node::new(id, activation_pool.choose(rng).cloned().unwrap());
