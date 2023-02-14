@@ -39,13 +39,11 @@ mod tests {
         activations::Activation,
         genes::{Connection, Genes, Id, Node},
         mutations::MutationError,
-        Genome, GenomeContext,
+        Genome,
     };
 
     #[test]
     fn can_remove_connection() {
-        let mut gc = GenomeContext::default();
-
         let mut genome = Genome {
             inputs: Genes(
                 vec![Node::new(Id(0), Activation::Linear)]
@@ -78,13 +76,11 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(genome.remove_connection_with_context(&mut gc).is_ok())
+        assert!(genome.remove_connection_with_context().is_ok())
     }
 
     #[test]
     fn can_not_remove_connection() {
-        let mut gc = GenomeContext::default();
-
         let mut genome = Genome {
             inputs: Genes(
                 vec![Node::new(Id(0), Activation::Linear)]
@@ -107,7 +103,7 @@ mod tests {
             ..Default::default()
         };
 
-        if let Err(error) = genome.remove_connection_with_context(&mut gc) {
+        if let Err(error) = genome.remove_connection_with_context() {
             assert_eq!(error, MutationError::CouldNotRemoveFeedForwardConnection);
         } else {
             unreachable!()

@@ -1,9 +1,16 @@
+use rand::rngs::SmallRng;
+
 use super::Mutations;
-use crate::{genome::Genome, rng::GenomeRng};
+use crate::genome::Genome;
 
 impl Mutations {
     /// This mutation alters `percent_perturbed` connection weights with perturbations sampled from calls to [`GenomeRng::weight_perturbation`].
-    pub fn change_weights(percent_perturbed: f64, genome: &mut Genome, rng: &mut GenomeRng) {
+    pub fn change_weights(
+        percent_perturbed: f64,
+        weight_cap: f64,
+        genome: &mut Genome,
+        rng: &mut SmallRng,
+    ) {
         let change_feed_forward_amount =
             (percent_perturbed * genome.feed_forward.len() as f64).ceil() as usize;
         let change_recurrent_amount =
@@ -15,7 +22,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_feed_forward_amount {
-                    connection.weight = rng.weight_perturbation(connection.weight);
+                    connection.perturb_weight(weight_cap, rng);
                 }
                 connection
             })
@@ -27,7 +34,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_recurrent_amount {
-                    connection.weight = rng.weight_perturbation(connection.weight);
+                    connection.perturb_weight(weight_cap, rng);
                 }
                 connection
             })

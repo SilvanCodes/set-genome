@@ -1,3 +1,4 @@
+use rand::{rngs::SmallRng, Rng};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, collections::hash_map::DefaultHasher, hash::Hash, hash::Hasher};
 
@@ -34,6 +35,20 @@ impl Connection {
         self.id_counter.hash(&mut id_hasher);
         self.id_counter += 1;
         Id(id_hasher.finish())
+    }
+
+    pub fn perturb_weight(&mut self, weight_cap: f64, rng: &mut SmallRng) {
+        self.weight = Self::weight_perturbation(self.weight, weight_cap, rng);
+    }
+
+    pub fn weight_perturbation(weight: f64, weight_cap: f64, rng: &mut SmallRng) -> f64 {
+        // approximatly normal distributed sample, see: https://en.wikipedia.org/wiki/Irwin%E2%80%93Hall_distribution#Approximating_a_Normal_distribution
+        let mut perturbation = (0..12).map(|_| rng.gen::<f64>()).sum::<f64>() - 6.0;
+
+        while (weight + perturbation) > weight_cap || (weight + perturbation) < -weight_cap {
+            perturbation = -perturbation / 2.0;
+        }
+        weight + perturbation
     }
 }
 

@@ -1,6 +1,7 @@
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
-use crate::{genes::Activation, genome::Genome, rng::GenomeRng};
+use crate::{genes::Activation, genome::Genome};
 
 pub use self::error::MutationError;
 
@@ -24,7 +25,11 @@ mod remove_recurrent_connection;
 #[serde(rename_all = "snake_case")]
 pub enum Mutations {
     /// See [`Mutations::change_weights`].
-    ChangeWeights { chance: f64, percent_perturbed: f64 },
+    ChangeWeights {
+        chance: f64,
+        percent_perturbed: f64,
+        weight_cap: f64,
+    },
     /// See [`Mutations::change_activation`].
     ChangeActivation {
         chance: f64,
@@ -51,55 +56,58 @@ impl Mutations {
     /// Mutate a [`Genome`] but respects the associate `chance` field of the [`Mutations`] enum variants.
     /// The user needs to supply the [`GenomeRng`] and [`IdGenerator`] manually when using this method directly.
     /// Use the [`crate::GenomeContext`] and the genomes `<>_with_context` functions to avoid manually handling those.
-    pub fn mutate(&self, genome: &mut Genome, rng: &mut GenomeRng) -> MutationResult {
+    pub fn mutate(&self, genome: &mut Genome) -> MutationResult {
+        let mut rng = SmallRng::from_entropy();
+
         match self {
             &Mutations::ChangeWeights {
                 chance,
                 percent_perturbed,
+                weight_cap,
             } => {
-                if rng.gamble(chance) {
-                    Self::change_weights(percent_perturbed, genome, rng);
+                if rng.gen::<f64>() < chance {
+                    Self::change_weights(percent_perturbed, weight_cap, genome, &mut rng);
                 }
             }
             Mutations::AddNode {
                 chance,
                 activation_pool,
             } => {
-                if rng.gamble(*chance) {
-                    Self::add_node(activation_pool, genome, rng)
+                if rng.gen::<f64>() < *chance {
+                    Self::add_node(activation_pool, genome, &mut rng)
                 }
             }
             &Mutations::AddConnection { chance } => {
-                if rng.gamble(chance) {
-                    return Self::add_connection(genome, rng);
+                if rng.gen::<f64>() < chance {
+                    return Self::add_connection(genome, &mut rng);
                 }
             }
             &Mutations::AddRecurrentConnection { chance } => {
-                if rng.gamble(chance) {
-                    return Self::add_recurrent_connection(genome, rng);
+                if rng.gen::<f64>() < chance {
+                    return Self::add_recurrent_connection(genome, &mut rng);
                 }
             }
             Mutations::ChangeActivation {
                 chance,
                 activation_pool,
             } => {
-                if rng.gamble(*chance) {
-                    Self::change_activation(activation_pool, genome, rng)
+                if rng.gen::<f64>() < *chance {
+                    Self::change_activation(activation_pool, genome, &mut rng)
                 }
             }
             &Mutations::RemoveNode { chance } => {
-                if rng.gamble(chance) {
-                    return Self::remove_node(genome, rng);
+                if rng.gen::<f64>() < chance {
+                    return Self::remove_node(genome, &mut rng);
                 }
             }
             &Mutations::RemoveConnection { chance } => {
-                if rng.gamble(chance) {
-                    return Self::remove_connection(genome, rng);
+                if rng.gen::<f64>() < chance {
+                    return Self::remove_connection(genome, &mut rng);
                 }
             }
             &Mutations::RemoveRecurrentConnection { chance } => {
-                if rng.gamble(chance) {
-                    return Self::remove_recurrent_connection(genome, rng);
+                if rng.gen::<f64>() < chance {
+                    return Self::remove_recurrent_connection(genome, &mut rng);
                 }
             }
         }

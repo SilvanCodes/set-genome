@@ -60,7 +60,7 @@ pub use genes::{activations, Connection, Id, Node};
 pub use genome::Genome;
 pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
-pub use rng::GenomeRng;
+use rand::{rngs::SmallRng, SeedableRng};
 
 #[cfg(feature = "favannat")]
 mod favannat_impl;
@@ -68,7 +68,6 @@ mod genes;
 mod genome;
 mod mutations;
 mod parameters;
-mod rng;
 
 /// This struct simplifies operations on the [`Genome`].
 ///
@@ -191,7 +190,6 @@ mod rng;
 /// [this crate]: https://crates.io/crates/favannat
 ///
 pub struct GenomeContext {
-    pub rng: GenomeRng,
     pub parameters: Parameters,
     initialized_genome: Genome,
     uninitialized_genome: Genome,
@@ -206,19 +204,12 @@ impl GenomeContext {
 
     /// Returns a new `GenomeContext` from the parameters.
     pub fn new(parameters: Parameters) -> Self {
-        let mut rng = GenomeRng::new(
-            parameters.seed.unwrap_or(42),
-            parameters.structure.weight_std_dev,
-            parameters.structure.weight_cap,
-        );
-
         let uninitialized_genome = Genome::new(&parameters.structure);
 
         let mut initialized_genome = uninitialized_genome.clone();
-        initialized_genome.init(&mut rng, &parameters.structure);
+        initialized_genome.init(&parameters.structure);
 
         Self {
-            rng,
             parameters,
             initialized_genome,
             uninitialized_genome,
@@ -244,8 +235,8 @@ impl Default for GenomeContext {
 
 impl Genome {
     /// Initialization connects the configured percent of inputs nodes to output nodes, i.e. it creates connection genes with random weights.
-    pub fn init_with_context(&mut self, context: &mut GenomeContext) {
-        self.init(&mut context.rng, &context.parameters.structure)
+    pub fn init_with_context(&mut self, context: &GenomeContext) {
+        self.init(&context.parameters.structure)
     }
 
     /// Apply all mutations listed in the [parameters of the context] with respect to their chance of happening.
@@ -270,82 +261,92 @@ impl Genome {
     ///
     /// [parameters of the context]: `Parameters`
     ///
-    pub fn mutate_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
+    pub fn mutate_with_context(&mut self, context: &GenomeContext) -> MutationResult {
         for mutation in &context.parameters.mutations {
-            mutation.mutate(self, &mut context.rng)?
+            // gamble for application of mutation right here instead of in mutate() ??
+            mutation.mutate(self)?
         }
         Ok(())
     }
 
     /// Calls [`Mutations::add_node`] with `self`, should [`Mutations::AddNode`] be listed in the context.
     /// It needs to be listed as it provides parameters.
-    pub fn add_node_with_context(&mut self, context: &mut GenomeContext) {
+    pub fn add_node_with_context(&mut self, context: &GenomeContext) {
+        let mut rng = SmallRng::from_entropy();
+
         for mutation in &context.parameters.mutations {
             if let Mutations::AddNode {
                 activation_pool, ..
             } = mutation
             {
-                Mutations::add_node(activation_pool, self, &mut context.rng)
+                Mutations::add_node(activation_pool, self, &mut rng)
             }
         }
     }
 
     /// Calls the [`Mutations::remove_node`] with `self`.
-    pub fn remove_node_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
-        Mutations::remove_node(self, &mut context.rng)
+    pub fn remove_node_with_context(&mut self) -> MutationResult {
+        let mut rng = SmallRng::from_entropy();
+
+        Mutations::remove_node(self, &mut rng)
     }
 
     /// Calls the [`Mutations::remove_connection`] with `self`.
-    pub fn remove_connection_with_context(
-        &mut self,
-        context: &mut GenomeContext,
-    ) -> MutationResult {
-        Mutations::remove_connection(self, &mut context.rng)
+    pub fn remove_connection_with_context(&mut self) -> MutationResult {
+        let mut rng = SmallRng::from_entropy();
+
+        Mutations::remove_connection(self, &mut rng)
     }
 
     /// Calls the [`Mutations::remove_recurrent_connection`] with `self`.
-    pub fn remove_recurrent_connection_with_context(
-        &mut self,
-        context: &mut GenomeContext,
-    ) -> MutationResult {
-        Mutations::remove_recurrent_connection(self, &mut context.rng)
+    pub fn remove_recurrent_connection_with_context(&mut self) -> MutationResult {
+        let mut rng = SmallRng::from_entropy();
+
+        Mutations::remove_recurrent_connection(self, &mut rng)
     }
 
     /// Calls the [`Mutations::add_connection`] with `self`.
-    pub fn add_connection_with_context(&mut self, context: &mut GenomeContext) -> MutationResult {
-        Mutations::add_connection(self, &mut context.rng)
+    pub fn add_connection_with_context(&mut self) -> MutationResult {
+        let mut rng = SmallRng::from_entropy();
+
+        Mutations::add_connection(self, &mut rng)
     }
 
     /// Calls the [`Mutations::add_recurrent_connection`] with `self`.
-    pub fn add_recurrent_connection_with_context(
-        &mut self,
-        context: &mut GenomeContext,
-    ) -> MutationResult {
-        Mutations::add_recurrent_connection(self, &mut context.rng)
+    pub fn add_recurrent_connection_with_context(&mut self) -> MutationResult {
+        let mut rng = SmallRng::from_entropy();
+
+        Mutations::add_recurrent_connection(self, &mut rng)
     }
 
     /// Calls [`Mutations::change_activation`] with `self`, should [`Mutations::ChangeActivation`] be listed in the context.
     /// It needs to be listed as it provides parameters.
-    pub fn change_activation_with_context(&mut self, context: &mut GenomeContext) {
+    pub fn change_activation_with_context(&mut self, context: &GenomeContext) {
+        let mut rng = SmallRng::from_entropy();
+
         for mutation in &context.parameters.mutations {
             if let Mutations::ChangeActivation {
                 activation_pool, ..
             } = mutation
             {
-                Mutations::change_activation(activation_pool, self, &mut context.rng)
+                Mutations::change_activation(activation_pool, self, &mut rng)
             }
         }
     }
 
     /// Calls [`Mutations::change_weights`] with `self`, should [`Mutations::ChangeWeights`] be listed in the context.
     /// It needs to be listed as it provides parameters.
-    pub fn change_weights_with_context(&mut self, context: &mut GenomeContext) {
+    pub fn change_weights_with_context(&mut self, context: &GenomeContext) {
+        let mut rng = SmallRng::from_entropy();
+
         for mutation in &context.parameters.mutations {
             if let Mutations::ChangeWeights {
-                percent_perturbed, ..
+                percent_perturbed,
+                weight_cap,
+                ..
             } = *mutation
             {
-                Mutations::change_weights(percent_perturbed, self, &mut context.rng)
+                Mutations::change_weights(percent_perturbed, weight_cap, self, &mut rng)
             }
         }
     }

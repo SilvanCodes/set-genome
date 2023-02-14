@@ -1,9 +1,8 @@
-use rand::prelude::IteratorRandom;
+use rand::{prelude::IteratorRandom, rngs::SmallRng};
 
 use crate::{
     genes::{Activation, Node},
     genome::Genome,
-    rng::GenomeRng,
 };
 
 use super::Mutations;
@@ -14,7 +13,7 @@ impl Mutations {
     pub fn change_activation(
         activation_pool: &[Activation],
         genome: &mut Genome,
-        rng: &mut GenomeRng,
+        rng: &mut SmallRng,
     ) {
         if let Some(node) = genome.hidden.random(rng) {
             let updated = Node::new(

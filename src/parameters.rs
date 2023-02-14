@@ -28,6 +28,7 @@ use serde::{Deserialize, Serialize};
 ///         Mutations::ChangeWeights {
 ///         chance: 1.0,
 ///         percent_perturbed: 0.5,
+///         weight_cap: 1.0,
 ///         },
 ///         Mutations::ChangeActivation {
 ///             chance: 0.05,
@@ -165,6 +166,7 @@ impl Default for Parameters {
                 Mutations::ChangeWeights {
                     chance: 1.0,
                     percent_perturbed: 0.5,
+                    weight_cap: 1.0,
                 },
                 Mutations::ChangeActivation {
                     chance: 0.05,
@@ -214,6 +216,7 @@ impl Parameters {
                 Mutations::ChangeWeights {
                     chance: 1.0,
                     percent_perturbed: 0.5,
+                    weight_cap: 1.0,
                 },
                 Mutations::AddNode {
                     chance: 0.01,

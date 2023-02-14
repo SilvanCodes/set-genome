@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use crate::{
     genes::{Activation, Connection, Genes, Id, Node},
     parameters::Structure,
-    rng::GenomeRng,
 };
 
 use rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -56,8 +55,10 @@ impl Genome {
     }
 
     /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
-    pub fn init(&mut self, rng: &mut GenomeRng, structure: &Structure) {
-        for input in self.inputs.iterate_with_random_offset(rng).take(
+    pub fn init(&mut self, structure: &Structure) {
+        let mut rng = SmallRng::from_entropy();
+
+        for input in self.inputs.iterate_with_random_offset(&mut rng).take(
             (structure.percent_of_connected_inputs * structure.number_of_inputs as f64).ceil()
                 as usize,
         ) {
@@ -65,7 +66,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    rng.weight_perturbation(0.0),
+                    Connection::weight_perturbation(0.0, 1.0, &mut rng),
                     output.id
                 )));
             }
@@ -229,6 +230,8 @@ mod tests {
         hash::{Hash, Hasher},
     };
 
+    use rand::{rngs::SmallRng, SeedableRng};
+
     use super::Genome;
     use crate::{
         genes::{Activation, Connection, Genes, Id, Node},
@@ -357,20 +360,21 @@ mod tests {
 
     #[test]
     fn crossover() {
-        let mut gc = GenomeContext::default();
+        let gc = GenomeContext::default();
+        let mut rng = SmallRng::from_entropy();
 
         let mut genome_0 = gc.initialized_genome();
         let mut genome_1 = gc.initialized_genome();
 
         // mutate genome_0
-        genome_0.add_node_with_context(&mut gc);
+        genome_0.add_node_with_context(&gc);
 
         // mutate genome_1
-        genome_1.add_node_with_context(&mut gc);
-        genome_1.add_node_with_context(&mut gc);
+        genome_1.add_node_with_context(&gc);
+        genome_1.add_node_with_context(&gc);
 
         // shorter genome is fitter genome
-        let offspring = genome_0.cross_in(&genome_1, &mut gc.rng);
+        let offspring = genome_0.cross_in(&genome_1, &mut rng);
 
         assert_eq!(offspring.hidden.len(), 1);
         assert_eq!(offspring.feed_forward.len(), 3);
@@ -402,8 +406,7 @@ mod tests {
 
     #[test]
     fn crossover_no_cycle() {
-        let mut gc = GenomeContext::default();
-
+        let mut rng = SmallRng::from_entropy();
         // assumption:
         // crossover of equal fitness genomes should not produce cycles
         // prerequisits:
@@ -458,7 +461,7 @@ mod tests {
             .feed_forward
             .insert(Connection::new(Id(3), 1.0, Id(2)));
 
-        let offspring = genome_0.cross_in(&genome_1, &mut gc.rng);
+        let offspring = genome_0.cross_in(&genome_1, &mut rng);
 
         for connection0 in offspring.feed_forward.iter() {
             for connection1 in offspring.feed_forward.iter() {
