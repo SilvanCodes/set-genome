@@ -42,6 +42,7 @@ impl Genome {
         let mut seed_hasher = SeaHasher::new();
         structure.number_of_inputs.hash(&mut seed_hasher);
         structure.number_of_outputs.hash(&mut seed_hasher);
+        structure.seed.hash(&mut seed_hasher);
 
         let mut rng = SmallRng::seed_from_u64(seed_hasher.finish());
 
