@@ -12,7 +12,8 @@ pub mod activations;
 
 /// Struct describing a ANN node.
 ///
-/// A node is characterised by its identity and its activation function.
+/// A node is made up of an identifier and activation function.
+/// See [`Activations`] for more information.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Node {
     pub id: Id,
@@ -25,7 +26,14 @@ impl Node {
     }
 }
 
-impl Gene for Node {}
+impl Gene for Node {
+    fn recombine(&self, other: &Self) -> Self {
+        Self {
+            activation: other.activation,
+            ..*self
+        }
+    }
+}
 
 impl Hash for Node {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -36,12 +44,6 @@ impl Hash for Node {
 impl PartialEq for Node {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
-    }
-}
-
-impl PartialEq<Id> for Node {
-    fn eq(&self, other: &Id) -> bool {
-        &self.id == other
     }
 }
 

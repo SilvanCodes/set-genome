@@ -35,7 +35,8 @@ impl Connection {
 
     pub fn next_id(&mut self) -> Id {
         let mut id_hasher = SeaHasher::new();
-        self.hash(&mut id_hasher);
+        self.input.hash(&mut id_hasher);
+        self.output.hash(&mut id_hasher);
         self.id_counter.hash(&mut id_hasher);
         self.id_counter += 1;
         Id(id_hasher.finish())
@@ -56,7 +57,14 @@ impl Connection {
     }
 }
 
-impl Gene for Connection {}
+impl Gene for Connection {
+    fn recombine(&self, other: &Self) -> Self {
+        Self {
+            weight: other.weight,
+            ..*self
+        }
+    }
+}
 
 impl PartialEq for Connection {
     fn eq(&self, other: &Self) -> bool {

@@ -24,9 +24,9 @@ pub use nodes::{
     Node,
 };
 
-pub trait Gene: Eq + Hash {}
-
-impl<U: Gene, T: Eq + Hash + Deref<Target = U>> Gene for T {}
+pub trait Gene: Eq + Hash {
+    fn recombine(&self, other: &Self) -> Self;
+}
 
 #[derive(Clone, Default)]
 pub struct GeneHasher;
@@ -128,7 +128,7 @@ impl<T: Gene + Clone> Genes<T> {
                 if rng.gen::<f64>() < 0.5 {
                     gene_self.clone()
                 } else {
-                    gene_other.clone()
+                    gene_self.recombine(gene_other)
                 }
             })
             .chain(self.difference(other).cloned())
