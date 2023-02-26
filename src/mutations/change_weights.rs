@@ -4,10 +4,10 @@ use super::Mutations;
 use crate::genome::Genome;
 
 impl Mutations {
-    /// This mutation alters `percent_perturbed` connection weights with perturbations sampled from calls to [`GenomeRng::weight_perturbation`].
+    /// This mutation alters `percent_perturbed` connection weights sampled from a gaussian distribution with given `standard_deviation`.
     pub fn change_weights(
         percent_perturbed: f64,
-        weight_cap: f64,
+        standard_deviation: f64,
         genome: &mut Genome,
         rng: &mut impl Rng,
     ) {
@@ -22,7 +22,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_feed_forward_amount {
-                    connection.perturb_weight(weight_cap, rng);
+                    connection.perturb_weight(standard_deviation, rng);
                 }
                 connection
             })
@@ -34,7 +34,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_recurrent_amount {
-                    connection.perturb_weight(weight_cap, rng);
+                    connection.perturb_weight(standard_deviation, rng);
                 }
                 connection
             })

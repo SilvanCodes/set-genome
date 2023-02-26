@@ -28,7 +28,7 @@ pub enum Mutations {
     ChangeWeights {
         chance: f64,
         percent_perturbed: f64,
-        weight_cap: f64,
+        standard_deviation: f64,
     },
     /// See [`Mutations::change_activation`].
     ChangeActivation {
@@ -61,10 +61,10 @@ impl Mutations {
             &Mutations::ChangeWeights {
                 chance,
                 percent_perturbed,
-                weight_cap,
+                standard_deviation,
             } => {
                 if rng.gen::<f64>() < chance {
-                    Self::change_weights(percent_perturbed, weight_cap, genome, rng);
+                    Self::change_weights(percent_perturbed, standard_deviation, genome, rng);
                 }
             }
             Mutations::AddNode {

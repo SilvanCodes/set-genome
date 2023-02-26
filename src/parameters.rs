@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
 ///         Mutations::ChangeWeights {
 ///         chance: 1.0,
 ///         percent_perturbed: 0.5,
-///         weight_cap: 1.0,
+///         standard_deviation: 0.1,
 ///         },
 ///         Mutations::ChangeActivation {
 ///             chance: 0.05,
@@ -76,8 +76,6 @@ use serde::{Deserialize, Serialize};
 /// number_of_outputs = 2
 /// percent_of_connected_inputs = 1.0
 /// outputs_activation = "Tanh"
-/// weight_std_dev = 0.1
-/// weight_cap = 1.0
 ///
 /// [[mutations]]
 /// type = "add_connection"
@@ -111,6 +109,7 @@ use serde::{Deserialize, Serialize};
 /// type = "change_weights"
 /// chance = 1.0
 /// percent_perturbed = 0.5
+/// standard_deviation = 0.1,
 ///
 /// [[mutations]]
 /// type = "change_activation"
@@ -161,7 +160,7 @@ impl Default for Parameters {
                 Mutations::ChangeWeights {
                     chance: 1.0,
                     percent_perturbed: 0.5,
-                    weight_cap: 1.0,
+                    standard_deviation: 0.1,
                 },
                 Mutations::ChangeActivation {
                     chance: 0.05,
@@ -210,7 +209,7 @@ impl Parameters {
                 Mutations::ChangeWeights {
                     chance: 1.0,
                     percent_perturbed: 0.5,
-                    weight_cap: 1.0,
+                    standard_deviation: 0.1,
                 },
                 Mutations::AddNode {
                     chance: 0.01,

@@ -89,7 +89,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    Connection::weight_perturbation(0.0, 1.0, &mut rng),
+                    Connection::weight_perturbation(0.0, 0.1, &mut rng),
                     output.id
                 )));
             }
@@ -175,15 +175,14 @@ impl Genome {
     pub fn compatability_distance(
         genome_0: &Self,
         genome_1: &Self,
-        factor_genes: f64,
+        factor_connections: f64,
         factor_weights: f64,
         factor_activations: f64,
-        weight_cap: f64,
     ) -> (f64, f64, f64, f64) {
         let mut weight_difference_total = 0.0;
         let mut activation_difference = 0.0;
 
-        let matching_genes_count_total = (genome_0
+        let matching_connections_count_total = (genome_0
             .feed_forward
             .iterate_matching_genes(&genome_1.feed_forward)
             .inspect(|(connection_0, connection_1)| {
@@ -198,7 +197,7 @@ impl Genome {
                 })
                 .count()) as f64;
 
-        let different_genes_count_total = (genome_0
+        let different_connections_count_total = (genome_0
             .feed_forward
             .iterate_unique_genes(&genome_1.feed_forward)
             .count()
@@ -217,14 +216,14 @@ impl Genome {
             })
             .count() as f64;
 
-        let maximum_weight_difference = matching_genes_count_total * 2.0 * weight_cap;
+        let maximum_weight_difference = matching_connections_count_total * 2.0;
 
         // percent of different genes, considering all unique genes from both genomes
-        let gene_diff = factor_genes * different_genes_count_total
-            / (matching_genes_count_total + different_genes_count_total);
+        let scaled_connection_difference = factor_connections * different_connections_count_total
+            / (matching_connections_count_total + different_connections_count_total);
 
         // average weight differences , considering matching connection genes
-        let weight_diff = factor_weights
+        let scaled_weight_difference = factor_weights
             * if maximum_weight_difference > 0.0 {
                 weight_difference_total / maximum_weight_difference
             } else {
@@ -232,7 +231,7 @@ impl Genome {
             };
 
         // percent of different activation functions, considering matching nodes genes
-        let activation_diff = factor_activations
+        let scaled_activation_difference = factor_activations
             * if matching_nodes_count > 0.0 {
                 activation_difference / matching_nodes_count
             } else {
@@ -240,11 +239,13 @@ impl Genome {
             };
 
         (
-            (gene_diff + weight_diff + activation_diff)
-                / (factor_genes + factor_weights + factor_activations),
-            gene_diff,
-            weight_diff,
-            activation_diff,
+            (scaled_connection_difference
+                + scaled_weight_difference
+                + scaled_activation_difference)
+                / (factor_connections + factor_weights + factor_activations),
+            scaled_connection_difference,
+            scaled_weight_difference,
+            scaled_activation_difference,
         )
     }
 }
@@ -524,8 +525,7 @@ mod tests {
 
         let genome_1 = genome_0.clone();
 
-        let delta =
-            Genome::compatability_distance(&genome_0, &genome_1, 1.0, 0.4, 0.0, f64::INFINITY).0;
+        let delta = Genome::compatability_distance(&genome_0, &genome_1, 1.0, 0.4, 0.0).0;
 
         assert!(delta.abs() < f64::EPSILON);
     }
@@ -547,7 +547,7 @@ mod tests {
             ),
 
             feed_forward: Genes(
-                vec![Connection::new(Id(0), 1.0, Id(1))]
+                vec![Connection::new(Id(0), 0.0, Id(1))]
                     .iter()
                     .cloned()
                     .collect(),
@@ -559,12 +559,14 @@ mod tests {
 
         genome_1
             .feed_forward
-            .replace(Connection::new(Id(0), 2.0, Id(1)));
+            .replace(Connection::new(Id(0), 1.0, Id(1)));
 
-        let delta = Genome::compatability_distance(&genome_0, &genome_1, 0.0, 2.0, 0.0, 2.0).0;
+        let factor_weight = 2.0;
 
-        // factor 1 times 1 expressed difference over 4 possible difference over factor 1
-        assert!((delta - 1.0 * 1.0 / 4.0 / 1.0).abs() < f64::EPSILON);
+        let delta = Genome::compatability_distance(&genome_0, &genome_1, 0.0, factor_weight, 0.0).0;
+
+        // factor 2 times 2 expressed difference over 2 possible difference over factor 2
+        assert!((delta - factor_weight * 1.0 / 2.0 / factor_weight).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -601,8 +603,7 @@ mod tests {
             .feed_forward
             .insert(Connection::new(Id(2), 2.0, Id(1)));
 
-        let delta =
-            Genome::compatability_distance(&genome_0, &genome_1, 2.0, 0.0, 0.0, f64::INFINITY).0;
+        let delta = Genome::compatability_distance(&genome_0, &genome_1, 2.0, 0.0, 0.0).0;
 
         // factor 2 times 2 different genes over 3 total genes over factor 2
         assert!((delta - 2.0 * 2.0 / 3.0 / 2.0).abs() < f64::EPSILON);
