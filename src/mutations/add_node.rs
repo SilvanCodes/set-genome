@@ -14,7 +14,12 @@ impl Mutations {
         // select an connection gene and split
         let mut random_connection = genome.feed_forward.random(rng).cloned().unwrap();
 
-        let id = random_connection.next_id();
+        let mut id = random_connection.next_id();
+
+        // avoid id collisions, will cause some kind of "divergent evolution" eventually
+        while genome.contains(id) {
+            id = random_connection.next_id()
+        }
 
         // construct new node gene
         let new_node = Node::new(id, activation_pool.choose(rng).cloned().unwrap());

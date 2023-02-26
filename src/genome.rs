@@ -65,6 +65,13 @@ impl Genome {
             .chain(self.outputs.iter())
     }
 
+    pub fn contains(&self, id: Id) -> bool {
+        let fake_node = &Node::new(id, Activation::Linear);
+        self.inputs.contains(fake_node)
+            || self.hidden.contains(fake_node)
+            || self.outputs.contains(fake_node)
+    }
+
     /// Returns an iterator over references to all connection genes (feed-forward + recurrent) in the genome.
     pub fn connections(&self) -> impl Iterator<Item = &Connection> {
         self.feed_forward.iter().chain(self.recurrent.iter())
