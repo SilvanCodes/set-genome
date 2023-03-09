@@ -9,7 +9,7 @@
 //! # };
 //! # use nalgebra::dmatrix;
 //! // Setup a genome context for networks with 10 inputs and 10 outputs.
-//! let mut parameters = Parameters::basic(10, 10);
+//! let parameters = Parameters::basic(10, 10);
 //!
 //! // Initialize a genome.
 //! let mut genome = Genome::initialized(&parameters);
@@ -146,7 +146,7 @@
 //! [see here]: https://github.com/SilvanCodes/set-genome/blob/main/src/favannat_impl.rs
 
 pub use genes::{activations, Connection, Id, Node};
-pub use genome::Genome;
+pub use genome::{CompatibilityDistance, Genome};
 pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
 use rand::{rngs::SmallRng, thread_rng, SeedableRng};

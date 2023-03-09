@@ -12,6 +12,10 @@ use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 
+mod compatibility_distance;
+
+pub use compatibility_distance::CompatibilityDistance;
+
 /// This is the core data structure this crate revoles around.
 ///
 /// A genome can be changed by mutation (a random alteration of its structure) or by crossing in another genome (recombining their matching parts).
@@ -159,88 +163,6 @@ impl Genome {
         self.connections()
             .filter(|connection| connection.input == node)
             .any(|connection| connection.output != exclude)
-    }
-
-    /// Defines a distance metric between genomes, useful for other evolutionary mechanisms such as speciation used in [NEAT].
-    /// Expects three factors to tune to importance of several aspects contributing to the distance metric, for details read [here].
-    ///
-    /// [NEAT]: http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf
-    /// [here]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
-    pub fn compatability_distance(
-        genome_0: &Self,
-        genome_1: &Self,
-        factor_connections: f64,
-        factor_weights: f64,
-        factor_activations: f64,
-    ) -> (f64, f64, f64, f64) {
-        let mut weight_difference_total = 0.0;
-        let mut activation_difference = 0.0;
-
-        let matching_connections_count_total = (genome_0
-            .feed_forward
-            .iterate_matching_genes(&genome_1.feed_forward)
-            .inspect(|(connection_0, connection_1)| {
-                weight_difference_total += (connection_0.weight - connection_1.weight).abs();
-            })
-            .count()
-            + genome_0
-                .recurrent
-                .iterate_matching_genes(&genome_1.recurrent)
-                .inspect(|(connection_0, connection_1)| {
-                    weight_difference_total += (connection_0.weight - connection_1.weight).abs();
-                })
-                .count()) as f64;
-
-        let different_connections_count_total = (genome_0
-            .feed_forward
-            .iterate_unique_genes(&genome_1.feed_forward)
-            .count()
-            + genome_0
-                .recurrent
-                .iterate_unique_genes(&genome_1.recurrent)
-                .count()) as f64;
-
-        let matching_nodes_count = genome_0
-            .hidden
-            .iterate_matching_genes(&genome_1.hidden)
-            .inspect(|(node_0, node_1)| {
-                if node_0.activation != node_1.activation {
-                    activation_difference += 1.0;
-                }
-            })
-            .count() as f64;
-
-        let maximum_weight_difference = matching_connections_count_total * 2.0;
-
-        // percent of different genes, considering all unique genes from both genomes
-        let scaled_connection_difference = factor_connections * different_connections_count_total
-            / (matching_connections_count_total + different_connections_count_total);
-
-        // average weight differences , considering matching connection genes
-        let scaled_weight_difference = factor_weights
-            * if maximum_weight_difference > 0.0 {
-                weight_difference_total / maximum_weight_difference
-            } else {
-                0.0
-            };
-
-        // percent of different activation functions, considering matching nodes genes
-        let scaled_activation_difference = factor_activations
-            * if matching_nodes_count > 0.0 {
-                activation_difference / matching_nodes_count
-            } else {
-                0.0
-            };
-
-        (
-            (scaled_connection_difference
-                + scaled_weight_difference
-                + scaled_activation_difference)
-                / (factor_connections + factor_weights + factor_activations),
-            scaled_connection_difference,
-            scaled_weight_difference,
-            scaled_activation_difference,
-        )
     }
 }
 
@@ -490,117 +412,6 @@ mod tests {
                 )
             }
         }
-    }
-
-    #[test]
-    fn compatability_distance_same_genome() {
-        let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-
-            feed_forward: Genes(
-                vec![Connection::new(Id(0), 1.0, Id(1))]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            ..Default::default()
-        };
-
-        let genome_1 = genome_0.clone();
-
-        let delta = Genome::compatability_distance(&genome_0, &genome_1, 1.0, 0.4, 0.0).0;
-
-        assert!(delta.abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn compatability_distance_different_weight_genome() {
-        let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-
-            feed_forward: Genes(
-                vec![Connection::new(Id(0), 0.0, Id(1))]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            ..Default::default()
-        };
-
-        let mut genome_1 = genome_0.clone();
-
-        genome_1
-            .feed_forward
-            .replace(Connection::new(Id(0), 1.0, Id(1)));
-
-        let factor_weight = 2.0;
-
-        let delta = Genome::compatability_distance(&genome_0, &genome_1, 0.0, factor_weight, 0.0).0;
-
-        // factor 2 times 2 expressed difference over 2 possible difference over factor 2
-        assert!((delta - factor_weight * 1.0 / 2.0 / factor_weight).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn compatability_distance_different_connection_genome() {
-        let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-
-            feed_forward: Genes(
-                vec![Connection::new(Id(0), 1.0, Id(1))]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            ..Default::default()
-        };
-
-        let mut genome_1 = genome_0.clone();
-
-        genome_1
-            .feed_forward
-            .insert(Connection::new(Id(0), 1.0, Id(2)));
-        genome_1
-            .feed_forward
-            .insert(Connection::new(Id(2), 2.0, Id(1)));
-
-        let delta = Genome::compatability_distance(&genome_0, &genome_1, 2.0, 0.0, 0.0).0;
-
-        // factor 2 times 2 different genes over 3 total genes over factor 2
-        assert!((delta - 2.0 * 2.0 / 3.0 / 2.0).abs() < f64::EPSILON);
     }
 
     #[test]
