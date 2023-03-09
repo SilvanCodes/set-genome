@@ -28,12 +28,6 @@ pub struct Genome {
     pub recurrent: Genes<Connection>,
 }
 
-// impl Default for Genome {
-//     fn default() -> Self {
-//         Self::new(&Structure::default())
-//     }
-// }
-
 impl Genome {
     /// Creates a new genome according to the [`Structure`] it is given.
     /// It generates all necessary identities based on an RNG seeded from a hash of the I/O configuration of the structure.
