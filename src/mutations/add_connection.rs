@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{seq::SliceRandom, Rng};
 
 use crate::{genes::Connection, genome::Genome};
 
@@ -10,27 +10,22 @@ impl Mutations {
     ///
     /// [^details]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
     pub fn add_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
-        // POTENTIAL BIAS: just chaining the iterators and starting "somewhere" in the iterator
-        // seems like will at least in the long run heavily bias towards sampling hidden nodes.
-        // This is because the amount of hidden nodes can grow while the number of inputs is fixed.
-        // "starting somewhere" is ever more likely to hit a hidden node, which will then in expectation
-        // be followed by (#hidden nodes / 2) more hidden nodes.
-        // I should probably collect and shuffle for more of a fair distribution.
-        let start_node_iterator = genome.inputs.iter().chain(genome.hidden.iter());
-        let end_node_iterator = genome.hidden.iter().chain(genome.outputs.iter());
+        let mut possible_start_nodes = genome
+            .inputs
+            .iter()
+            .chain(genome.hidden.iter())
+            .collect::<Vec<_>>();
+        possible_start_nodes.shuffle(rng);
 
-        for start_node in start_node_iterator
-            // make iterator wrap
-            .cycle()
-            // randomly offset into the iterator to choose any node
-            .skip(
-                (rng.gen::<f64>() * (genome.inputs.len() + genome.hidden.len()) as f64).floor()
-                    as usize,
-            )
-            // just loop every value once
-            .take(genome.inputs.len() + genome.hidden.len())
-        {
-            if let Some(end_node) = end_node_iterator.clone().find(|&end_node| {
+        let mut possible_end_nodes = genome
+            .hidden
+            .iter()
+            .chain(genome.outputs.iter())
+            .collect::<Vec<_>>();
+        possible_end_nodes.shuffle(rng);
+
+        for start_node in possible_start_nodes {
+            if let Some(end_node) = possible_end_nodes.iter().cloned().find(|&end_node| {
                 end_node != start_node
                     && !genome.feed_forward.contains(&Connection::new(
                         start_node.id,
