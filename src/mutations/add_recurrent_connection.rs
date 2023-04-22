@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{seq::SliceRandom, Rng};
 
 use crate::{genes::Connection, genome::Genome};
 
@@ -10,25 +10,23 @@ impl Mutations {
     ///
     /// [^details]: "any two nodes" is technically not correct as the end node has to come from the intersection of the hidden and output nodes.
     pub fn add_recurrent_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
-        let start_node_iterator = genome
+        let mut possible_start_nodes = genome
             .inputs
             .iter()
             .chain(genome.hidden.iter())
-            .chain(genome.outputs.iter());
-        let end_node_iterator = genome.hidden.iter().chain(genome.outputs.iter());
+            .chain(genome.outputs.iter())
+            .collect::<Vec<_>>();
+        possible_start_nodes.shuffle(rng);
 
-        for start_node in start_node_iterator
-            // make iterator wrap
-            .cycle()
-            // randomly offset into the iterator to choose any node
-            .skip(
-                (rng.gen::<f64>() * (genome.inputs.len() + genome.hidden.len()) as f64).floor()
-                    as usize,
-            )
-            // just loop every value once
-            .take(genome.inputs.len() + genome.hidden.len())
-        {
-            if let Some(end_node) = end_node_iterator.clone().find(|&end_node| {
+        let mut possible_end_nodes = genome
+            .hidden
+            .iter()
+            .chain(genome.outputs.iter())
+            .collect::<Vec<_>>();
+        possible_end_nodes.shuffle(rng);
+
+        for start_node in possible_start_nodes {
+            if let Some(end_node) = possible_end_nodes.iter().cloned().find(|&end_node| {
                 end_node != start_node
                     && !genome
                         .recurrent
