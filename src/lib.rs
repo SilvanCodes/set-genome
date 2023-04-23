@@ -4,8 +4,7 @@
 //! ```
 //! # use set_genome::{Genome, Parameters};
 //! # use favannat::{
-//! #   matrix::feedforward::fabricator::MatrixFeedForwardFabricator,
-//! #    network::{Evaluator, Fabricator},
+//! #   MatrixFeedforwardFabricator, Evaluator, Fabricator,
 //! # };
 //! # use nalgebra::dmatrix;
 //! // Setup a genome context for networks with 10 inputs and 10 outputs.
@@ -18,7 +17,7 @@
 //! genome.mutate(&parameters);
 //!
 //! // Get a phenotype of the genome.
-//! let network = MatrixFeedForwardFabricator::fabricate(&genome).expect("Cool network.");
+//! let network = MatrixFeedforwardFabricator::fabricate(&genome).expect("Cool network.");
 //!
 //! // Evaluate a network on an input.
 //! let output = network.evaluate(dmatrix![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
