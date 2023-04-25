@@ -3,10 +3,11 @@
 //! The genome holds several fields with `Genes` of different types.
 
 use rand::{prelude::IteratorRandom, prelude::SliceRandom, Rng};
+use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{hash_map::DefaultHasher, HashSet},
-    hash::{Hash, Hasher},
+    collections::HashSet,
+    hash::{BuildHasher, Hash, Hasher},
     iter::FromIterator,
     ops::Deref,
     ops::DerefMut,
@@ -17,25 +18,36 @@ mod id;
 mod nodes;
 
 pub use connections::Connection;
-pub use id::{id_generator::IdGenerator, Id};
+pub use id::Id;
 pub use nodes::{
     activations::{self, Activation},
     Node,
 };
 
-pub trait Gene: Eq + Hash {}
+pub trait Gene: Eq + Hash {
+    fn recombine(&self, other: &Self) -> Self;
+}
 
-impl<U: Gene, T: Eq + Hash + Deref<Target = U>> Gene for T {}
+#[derive(Clone, Default)]
+pub struct GeneHasher;
+
+impl BuildHasher for GeneHasher {
+    type Hasher = SeaHasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        Self::Hasher::new()
+    }
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct Genes<T: Gene>(pub HashSet<T>);
+pub struct Genes<T: Gene>(pub HashSet<T, GeneHasher>);
 
 // see here: https://stackoverflow.com/questions/60882381/what-is-the-fastest-correct-way-to-detect-that-there-are-no-duplicates-in-a-json/60884343#60884343
 impl<T: Gene> Hash for Genes<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut hash = 0;
         for gene in &self.0 {
-            let mut gene_hasher = DefaultHasher::new();
+            let mut gene_hasher = SeaHasher::new();
             gene.hash(&mut gene_hasher);
             hash ^= gene_hasher.finish();
         }
@@ -50,7 +62,7 @@ impl<T: Gene> Default for Genes<T> {
 }
 
 impl<T: Gene> Deref for Genes<T> {
-    type Target = HashSet<T>;
+    type Target = HashSet<T, GeneHasher>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -116,7 +128,7 @@ impl<T: Gene + Clone> Genes<T> {
                 if rng.gen::<f64>() < 0.5 {
                     gene_self.clone()
                 } else {
-                    gene_other.clone()
+                    gene_self.recombine(gene_other)
                 }
             })
             .chain(self.difference(other).cloned())

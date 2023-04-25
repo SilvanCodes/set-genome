@@ -1,13 +1,20 @@
-use std::collections::HashSet;
-
-use crate::{
-    genes::{Activation, Connection, Genes, Id, IdGenerator, Node},
-    parameters::Structure,
-    rng::GenomeRng,
+use std::{
+    collections::HashSet,
+    hash::{Hash, Hasher},
 };
 
-use rand::Rng;
+use crate::{
+    genes::{Activation, Connection, Genes, Id, Node},
+    parameters::Structure,
+};
+
+use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
+use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
+
+mod compatibility_distance;
+
+pub use compatibility_distance::CompatibilityDistance;
 
 /// This is the core data structure this crate revoles around.
 ///
@@ -27,14 +34,22 @@ pub struct Genome {
 
 impl Genome {
     /// Creates a new genome according to the [`Structure`] it is given.
-    /// It generates all necessary identities from the [`IdGenerator`].
-    pub fn new(id_gen: &mut IdGenerator, structure: &Structure) -> Self {
+    /// It generates all necessary identities based on an RNG seeded from a hash of the I/O configuration of the structure.
+    /// This allows genomes of identical I/O configuration to be crossed over in a meaningful way.
+    pub fn new(structure: &Structure) -> Self {
+        let mut seed_hasher = SeaHasher::new();
+        structure.number_of_inputs.hash(&mut seed_hasher);
+        structure.number_of_outputs.hash(&mut seed_hasher);
+        structure.seed.hash(&mut seed_hasher);
+
+        let mut rng = SmallRng::seed_from_u64(seed_hasher.finish());
+
         Genome {
             inputs: (0..structure.number_of_inputs)
-                .map(|_| Node::new(id_gen.next_id(), Activation::Linear))
+                .map(|_| Node::new(Id(rng.gen::<u64>()), Activation::Linear))
                 .collect(),
             outputs: (0..structure.number_of_outputs)
-                .map(|_| Node::new(id_gen.next_id(), structure.outputs_activation))
+                .map(|_| Node::new(Id(rng.gen::<u64>()), structure.outputs_activation))
                 .collect(),
             ..Default::default()
         }
@@ -48,14 +63,23 @@ impl Genome {
             .chain(self.outputs.iter())
     }
 
+    pub fn contains(&self, id: Id) -> bool {
+        let fake_node = &Node::new(id, Activation::Linear);
+        self.inputs.contains(fake_node)
+            || self.hidden.contains(fake_node)
+            || self.outputs.contains(fake_node)
+    }
+
     /// Returns an iterator over references to all connection genes (feed-forward + recurrent) in the genome.
     pub fn connections(&self) -> impl Iterator<Item = &Connection> {
         self.feed_forward.iter().chain(self.recurrent.iter())
     }
 
     /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
-    pub fn init(&mut self, rng: &mut GenomeRng, structure: &Structure) {
-        for input in self.inputs.iterate_with_random_offset(rng).take(
+    pub fn init(&mut self, structure: &Structure) {
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+
+        for input in self.inputs.iterate_with_random_offset(&mut rng).take(
             (structure.percent_of_connected_inputs * structure.number_of_inputs as f64).ceil()
                 as usize,
         ) {
@@ -63,7 +87,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    rng.weight_perturbation(0.0),
+                    Connection::weight_perturbation(0.0, 0.1, &mut rng),
                     output.id
                 )));
             }
@@ -84,10 +108,13 @@ impl Genome {
     /// For connection genes present in both genomes flip a coin to determine the weight inside the new genome.
     /// For node genes present in both genomes flip a coin to determine the activation function inside the new genome.
     /// Any structure not present in other is taken over unchanged from `self`.
-    pub fn cross_in(&self, other: &Self, rng: &mut impl Rng) -> Self {
-        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, rng);
-        let recurrent = self.recurrent.cross_in(&other.recurrent, rng);
-        let hidden = self.hidden.cross_in(&other.hidden, rng);
+    pub fn cross_in(&self, other: &Self) -> Self {
+        // Instantiating an RNG for every call might slow things down.
+        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+
+        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &mut rng);
+        let recurrent = self.recurrent.cross_in(&other.recurrent, &mut rng);
+        let hidden = self.hidden.cross_in(&other.hidden, &mut rng);
 
         Genome {
             feed_forward,
@@ -137,100 +164,19 @@ impl Genome {
             .filter(|connection| connection.input == node)
             .any(|connection| connection.output != exclude)
     }
-
-    /// Defines a distance metric between genomes, useful for other evolutionary mechanisms such as speciation used in [NEAT].
-    /// Expects three factors to tune to importance of several aspects contributing to the distance metric, for details read [here].
-    ///
-    /// [NEAT]: http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf
-    /// [here]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
-    pub fn compatability_distance(
-        genome_0: &Self,
-        genome_1: &Self,
-        factor_genes: f64,
-        factor_weights: f64,
-        factor_activations: f64,
-        weight_cap: f64,
-    ) -> (f64, f64, f64, f64) {
-        let mut weight_difference_total = 0.0;
-        let mut activation_difference = 0.0;
-
-        let matching_genes_count_total = (genome_0
-            .feed_forward
-            .iterate_matching_genes(&genome_1.feed_forward)
-            .inspect(|(connection_0, connection_1)| {
-                weight_difference_total += (connection_0.weight - connection_1.weight).abs();
-            })
-            .count()
-            + genome_0
-                .recurrent
-                .iterate_matching_genes(&genome_1.recurrent)
-                .inspect(|(connection_0, connection_1)| {
-                    weight_difference_total += (connection_0.weight - connection_1.weight).abs();
-                })
-                .count()) as f64;
-
-        let different_genes_count_total = (genome_0
-            .feed_forward
-            .iterate_unique_genes(&genome_1.feed_forward)
-            .count()
-            + genome_0
-                .recurrent
-                .iterate_unique_genes(&genome_1.recurrent)
-                .count()) as f64;
-
-        let matching_nodes_count = genome_0
-            .hidden
-            .iterate_matching_genes(&genome_1.hidden)
-            .inspect(|(node_0, node_1)| {
-                if node_0.activation != node_1.activation {
-                    activation_difference += 1.0;
-                }
-            })
-            .count() as f64;
-
-        let maximum_weight_difference = matching_genes_count_total * 2.0 * weight_cap;
-
-        // percent of different genes, considering all unique genes from both genomes
-        let gene_diff = factor_genes * different_genes_count_total
-            / (matching_genes_count_total + different_genes_count_total);
-
-        // average weight differences , considering matching connection genes
-        let weight_diff = factor_weights
-            * if maximum_weight_difference > 0.0 {
-                weight_difference_total / maximum_weight_difference
-            } else {
-                0.0
-            };
-
-        // percent of different activation functions, considering matching nodes genes
-        let activation_diff = factor_activations
-            * if matching_nodes_count > 0.0 {
-                activation_difference / matching_nodes_count
-            } else {
-                0.0
-            };
-
-        (
-            (gene_diff + weight_diff + activation_diff)
-                / (factor_genes + factor_weights + factor_activations),
-            gene_diff,
-            weight_diff,
-            activation_diff,
-        )
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::hash_map::DefaultHasher,
-        hash::{Hash, Hasher},
-    };
+    use std::hash::{Hash, Hasher};
+
+    use rand::thread_rng;
+    use seahash::SeaHasher;
 
     use super::Genome;
     use crate::{
         genes::{Activation, Connection, Genes, Id, Node},
-        GenomeContext,
+        Mutations, Parameters,
     };
 
     #[test]
@@ -355,20 +301,22 @@ mod tests {
 
     #[test]
     fn crossover() {
-        let mut gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let mut genome_0 = gc.initialized_genome();
-        let mut genome_1 = gc.initialized_genome();
+        let mut genome_0 = Genome::initialized(&parameters);
+        let mut genome_1 = Genome::initialized(&parameters);
+
+        let rng = &mut thread_rng();
 
         // mutate genome_0
-        genome_0.add_node_with_context(&mut gc);
+        Mutations::add_node(&Activation::all(), &mut genome_0, rng);
 
         // mutate genome_1
-        genome_1.add_node_with_context(&mut gc);
-        genome_1.add_node_with_context(&mut gc);
+        Mutations::add_node(&Activation::all(), &mut genome_1, rng);
+        Mutations::add_node(&Activation::all(), &mut genome_1, rng);
 
         // shorter genome is fitter genome
-        let offspring = genome_0.cross_in(&genome_1, &mut gc.rng);
+        let offspring = genome_0.cross_in(&genome_1);
 
         assert_eq!(offspring.hidden.len(), 1);
         assert_eq!(offspring.feed_forward.len(), 3);
@@ -376,9 +324,9 @@ mod tests {
 
     #[test]
     fn detect_no_cycle() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let genome = gc.initialized_genome();
+        let genome = Genome::initialized(&parameters);
 
         let input = genome.inputs.iter().next().unwrap();
         let output = genome.outputs.iter().next().unwrap();
@@ -388,9 +336,9 @@ mod tests {
 
     #[test]
     fn detect_cycle() {
-        let gc = GenomeContext::default();
+        let parameters = Parameters::default();
 
-        let genome = gc.initialized_genome();
+        let genome = Genome::initialized(&parameters);
 
         let input = genome.inputs.iter().next().unwrap();
         let output = genome.outputs.iter().next().unwrap();
@@ -400,8 +348,6 @@ mod tests {
 
     #[test]
     fn crossover_no_cycle() {
-        let mut gc = GenomeContext::default();
-
         // assumption:
         // crossover of equal fitness genomes should not produce cycles
         // prerequisits:
@@ -456,7 +402,7 @@ mod tests {
             .feed_forward
             .insert(Connection::new(Id(3), 1.0, Id(2)));
 
-        let offspring = genome_0.cross_in(&genome_1, &mut gc.rng);
+        let offspring = genome_0.cross_in(&genome_1);
 
         for connection0 in offspring.feed_forward.iter() {
             for connection1 in offspring.feed_forward.iter() {
@@ -466,117 +412,6 @@ mod tests {
                 )
             }
         }
-    }
-
-    #[test]
-    fn compatability_distance_same_genome() {
-        let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-
-            feed_forward: Genes(
-                vec![Connection::new(Id(0), 1.0, Id(1))]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            ..Default::default()
-        };
-
-        let genome_1 = genome_0.clone();
-
-        let delta =
-            Genome::compatability_distance(&genome_0, &genome_1, 1.0, 0.4, 0.0, f64::INFINITY).0;
-
-        assert!(delta.abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn compatability_distance_different_weight_genome() {
-        let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-
-            feed_forward: Genes(
-                vec![Connection::new(Id(0), 1.0, Id(1))]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            ..Default::default()
-        };
-
-        let mut genome_1 = genome_0.clone();
-
-        genome_1
-            .feed_forward
-            .replace(Connection::new(Id(0), 2.0, Id(1)));
-
-        let delta = Genome::compatability_distance(&genome_0, &genome_1, 0.0, 2.0, 0.0, 2.0).0;
-
-        // factor 1 times 1 expressed difference over 4 possible difference over factor 1
-        assert!((delta - 1.0 * 1.0 / 4.0 / 1.0).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn compatability_distance_different_connection_genome() {
-        let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-
-            feed_forward: Genes(
-                vec![Connection::new(Id(0), 1.0, Id(1))]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
-            ..Default::default()
-        };
-
-        let mut genome_1 = genome_0.clone();
-
-        genome_1
-            .feed_forward
-            .insert(Connection::new(Id(0), 1.0, Id(2)));
-        genome_1
-            .feed_forward
-            .insert(Connection::new(Id(2), 2.0, Id(1)));
-
-        let delta =
-            Genome::compatability_distance(&genome_0, &genome_1, 2.0, 0.0, 0.0, f64::INFINITY).0;
-
-        // factor 2 times 2 different genes over 3 total genes over factor 2
-        assert!((delta - 2.0 * 2.0 / 3.0 / 2.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -635,11 +470,11 @@ mod tests {
 
         assert_eq!(genome_0, genome_1);
 
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = SeaHasher::new();
         genome_0.hash(&mut hasher);
         let genome_0_hash = hasher.finish();
 
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = SeaHasher::new();
         genome_1.hash(&mut hasher);
         let genome_1_hash = hasher.finish();
 

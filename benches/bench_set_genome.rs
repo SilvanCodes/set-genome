@@ -1,20 +1,20 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use set_genome::{activations::Activation, GenomeContext, Mutations, Parameters};
+use rand::{rngs::SmallRng, thread_rng, SeedableRng};
+use set_genome::{activations::Activation, Genome, Mutations, Parameters};
 
 pub fn crossover_same_genome_benchmark(c: &mut Criterion) {
-    let mut gc = GenomeContext::default();
+    let parameters = Parameters::default();
 
-    let genome_0 = gc.initialized_genome();
-    let genome_1 = gc.initialized_genome();
+    let genome_0 = Genome::initialized(&parameters);
+    let genome_1 = Genome::initialized(&parameters);
 
     c.bench_function("crossover same genome", |b| {
-        b.iter(|| genome_0.cross_in(&genome_1, &mut gc.rng))
+        b.iter(|| genome_0.cross_in(&genome_1))
     });
 }
 
 pub fn crossover_highly_mutated_genomes_benchmark(c: &mut Criterion) {
     let parameters = Parameters {
-        seed: None,
         structure: Default::default(),
         mutations: vec![
             Mutations::AddNode {
@@ -36,24 +36,21 @@ pub fn crossover_highly_mutated_genomes_benchmark(c: &mut Criterion) {
         ],
     };
 
-    let mut gc = GenomeContext::new(parameters);
-
-    let mut genome_0 = gc.initialized_genome();
-    let mut genome_1 = gc.initialized_genome();
+    let mut genome_0 = Genome::initialized(&parameters);
+    let mut genome_1 = Genome::initialized(&parameters);
 
     for _ in 0..100 {
-        genome_0.mutate_with_context(&mut gc);
-        genome_1.mutate_with_context(&mut gc);
+        genome_0.mutate(&parameters).expect("mutation");
+        genome_1.mutate(&parameters).expect("mutation");
     }
 
     c.bench_function("crossover highly mutated genomes", |b| {
-        b.iter(|| genome_0.cross_in(&genome_1, &mut gc.rng))
+        b.iter(|| genome_0.cross_in(&genome_1))
     });
 }
 
 pub fn mutate_genome_benchmark(c: &mut Criterion) {
     let parameters = Parameters {
-        seed: None,
         structure: Default::default(),
         mutations: vec![
             Mutations::AddNode {
@@ -75,22 +72,17 @@ pub fn mutate_genome_benchmark(c: &mut Criterion) {
         ],
     };
 
-    let mut gc = GenomeContext::new(parameters);
+    let mut genome = Genome::initialized(&parameters);
 
-    let mut genome = gc.initialized_genome();
-
-    c.bench_function("mutate genome", |b| {
-        b.iter(|| genome.mutate_with_context(&mut gc))
-    });
+    c.bench_function("mutate genome", |b| b.iter(|| genome.mutate(&parameters)));
 }
 
 pub fn add_node_to_genome_benchmark(c: &mut Criterion) {
-    let mut gc = GenomeContext::default();
-
-    let mut genome = gc.initialized_genome();
+    let genome = &mut Genome::initialized(&Parameters::default());
+    let rng = &mut SmallRng::from_rng(thread_rng()).unwrap();
 
     c.bench_function("add node to genome", |b| {
-        b.iter(|| genome.add_node_with_context(&mut gc))
+        b.iter(|| Mutations::add_node(&Activation::all(), genome, rng))
     });
 }
 

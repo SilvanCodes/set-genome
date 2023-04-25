@@ -1,10 +1,7 @@
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    genes::{Activation, IdGenerator},
-    genome::Genome,
-    rng::GenomeRng,
-};
+use crate::{genes::Activation, genome::Genome};
 
 pub use self::error::MutationError;
 
@@ -22,13 +19,17 @@ mod remove_recurrent_connection;
 
 /// Lists all possible mutations with their corresponding parameters.
 ///
-/// Each mutation acts as a self-contained unit and has to be listed in the [`crate::Parameters::mutations`] field in order to take effect when calling [`crate::Genome::mutate_with_context`].
+/// Each mutation acts as a self-contained unit and has to be listed in the [`crate::Parameters::mutations`] field in order to take effect when calling [`crate::Genome::mutate_with`].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum Mutations {
     /// See [`Mutations::change_weights`].
-    ChangeWeights { chance: f64, percent_perturbed: f64 },
+    ChangeWeights {
+        chance: f64,
+        percent_perturbed: f64,
+        standard_deviation: f64,
+    },
     /// See [`Mutations::change_activation`].
     ChangeActivation {
         chance: f64,
@@ -53,38 +54,34 @@ pub enum Mutations {
 
 impl Mutations {
     /// Mutate a [`Genome`] but respects the associate `chance` field of the [`Mutations`] enum variants.
-    /// The user needs to supply the [`GenomeRng`] and [`IdGenerator`] manually when using this method directly.
-    /// Use the [`crate::GenomeContext`] and the genomes `<>_with_context` functions to avoid manually handling those.
-    pub fn mutate(
-        &self,
-        genome: &mut Genome,
-        rng: &mut GenomeRng,
-        id_gen: &mut IdGenerator,
-    ) -> MutationResult {
+    /// The user needs to supply some RNG manually when using this method directly.
+    /// Use [`crate::Genome::mutate`] as the default API.
+    pub fn mutate(&self, genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         match self {
             &Mutations::ChangeWeights {
                 chance,
                 percent_perturbed,
+                standard_deviation,
             } => {
-                if rng.gamble(chance) {
-                    Self::change_weights(percent_perturbed, genome, rng);
+                if rng.gen::<f64>() < chance {
+                    Self::change_weights(percent_perturbed, standard_deviation, genome, rng);
                 }
             }
             Mutations::AddNode {
                 chance,
                 activation_pool,
             } => {
-                if rng.gamble(*chance) {
-                    Self::add_node(activation_pool, genome, rng, id_gen)
+                if rng.gen::<f64>() < *chance {
+                    Self::add_node(activation_pool, genome, rng)
                 }
             }
             &Mutations::AddConnection { chance } => {
-                if rng.gamble(chance) {
+                if rng.gen::<f64>() < chance {
                     return Self::add_connection(genome, rng);
                 }
             }
             &Mutations::AddRecurrentConnection { chance } => {
-                if rng.gamble(chance) {
+                if rng.gen::<f64>() < chance {
                     return Self::add_recurrent_connection(genome, rng);
                 }
             }
@@ -92,22 +89,22 @@ impl Mutations {
                 chance,
                 activation_pool,
             } => {
-                if rng.gamble(*chance) {
+                if rng.gen::<f64>() < *chance {
                     Self::change_activation(activation_pool, genome, rng)
                 }
             }
             &Mutations::RemoveNode { chance } => {
-                if rng.gamble(chance) {
+                if rng.gen::<f64>() < chance {
                     return Self::remove_node(genome, rng);
                 }
             }
             &Mutations::RemoveConnection { chance } => {
-                if rng.gamble(chance) {
+                if rng.gen::<f64>() < chance {
                     return Self::remove_connection(genome, rng);
                 }
             }
             &Mutations::RemoveRecurrentConnection { chance } => {
-                if rng.gamble(chance) {
+                if rng.gen::<f64>() < chance {
                     return Self::remove_recurrent_connection(genome, rng);
                 }
             }

@@ -1,9 +1,16 @@
+use rand::Rng;
+
 use super::Mutations;
-use crate::{genome::Genome, rng::GenomeRng};
+use crate::genome::Genome;
 
 impl Mutations {
-    /// This mutation alters `percent_perturbed` connection weights with perturbations sampled from calls to [`GenomeRng::weight_perturbation`].
-    pub fn change_weights(percent_perturbed: f64, genome: &mut Genome, rng: &mut GenomeRng) {
+    /// This mutation alters `percent_perturbed` connection weights sampled from a gaussian distribution with given `standard_deviation`.
+    pub fn change_weights(
+        percent_perturbed: f64,
+        standard_deviation: f64,
+        genome: &mut Genome,
+        rng: &mut impl Rng,
+    ) {
         let change_feed_forward_amount =
             (percent_perturbed * genome.feed_forward.len() as f64).ceil() as usize;
         let change_recurrent_amount =
@@ -15,7 +22,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_feed_forward_amount {
-                    connection.weight = rng.weight_perturbation(connection.weight);
+                    connection.perturb_weight(standard_deviation, rng);
                 }
                 connection
             })
@@ -27,7 +34,7 @@ impl Mutations {
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_recurrent_amount {
-                    connection.weight = rng.weight_perturbation(connection.weight);
+                    connection.perturb_weight(standard_deviation, rng);
                 }
                 connection
             })
@@ -37,17 +44,17 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use crate::GenomeContext;
+    use rand::thread_rng;
+
+    use crate::{Genome, Mutations, Parameters};
 
     #[test]
     fn change_weights() {
-        let mut gc = GenomeContext::default();
-
-        let mut genome = gc.initialized_genome();
+        let mut genome = Genome::initialized(&Parameters::default());
 
         let old_weight = genome.feed_forward.iter().next().unwrap().weight;
 
-        genome.change_weights_with_context(&mut gc);
+        Mutations::change_weights(1.0, 1.0, &mut genome, &mut thread_rng());
 
         assert!(
             (old_weight - genome.feed_forward.iter().next().unwrap().weight).abs() > f64::EPSILON

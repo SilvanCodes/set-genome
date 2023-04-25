@@ -65,17 +65,17 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
+    use rand::thread_rng;
+
     use crate::{
         activations::Activation,
         genes::{Connection, Genes, Id, Node},
         mutations::MutationError,
-        Genome, GenomeContext,
+        Genome, Mutations,
     };
 
     #[test]
     fn can_remove_node() {
-        let mut gc = GenomeContext::default();
-
         let mut genome = Genome {
             inputs: Genes(
                 vec![Node::new(Id(0), Activation::Linear)]
@@ -112,13 +112,11 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(genome.remove_node_with_context(&mut gc).is_ok())
+        assert!(Mutations::remove_node(&mut genome, &mut thread_rng()).is_ok())
     }
 
     #[test]
     fn can_not_remove_node() {
-        let mut gc = GenomeContext::default();
-
         let mut genome = Genome {
             inputs: Genes(
                 vec![Node::new(Id(0), Activation::Linear)]
@@ -150,7 +148,7 @@ mod tests {
             ..Default::default()
         };
 
-        if let Err(error) = genome.remove_node_with_context(&mut gc) {
+        if let Err(error) = Mutations::remove_node(&mut genome, &mut thread_rng()) {
             assert_eq!(error, MutationError::CouldNotRemoveNode);
         } else {
             unreachable!()
