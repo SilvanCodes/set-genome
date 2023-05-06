@@ -164,6 +164,78 @@ impl Genome {
             .filter(|connection| connection.input == node)
             .any(|connection| connection.output != exclude)
     }
+
+    /// Get the encoded neural network as a string in [DOT][1] format.
+    ///
+    /// The output can be [visualized here][2] for example.
+    ///
+    /// [1]: https://www.graphviz.org/doc/info/lang.html
+    /// [2]: https://dreampuf.github.io/GraphvizOnline
+    pub fn dot(genome: &Self) -> String {
+        let mut dot = "digraph {\n".to_owned();
+
+        dot.push_str("\tcomment=\"Input Nodes\"\n");
+        for node in genome.inputs.iter() {
+            // fill color: FFF2CC
+            // line color: D6B656
+
+            dot.push_str(&format!(
+                "\t{} [label={:?} color=\"#D6B656\" fillcolor=\"#FFF2CC\" style=\"filled\"];\n",
+                node.id.0, node.activation
+            ));
+        }
+
+        dot.push_str("\tcomment=\"Hidden Nodes\"\n");
+        for node in genome.hidden.iter() {
+            // fill color: DAE8FC
+            // line color: 6C8EBF
+
+            dot.push_str(&format!(
+                "\t{} [label={:?} color=\"#6C8EBF\" fillcolor=\"#DAE8FC\" style=\"filled\"];\n",
+                node.id.0, node.activation
+            ));
+        }
+
+        dot.push_str("\tcomment=\"Output Nodes\"\n");
+        for node in genome.outputs.iter() {
+            // fill color: E1D5E7
+            // line color: 9673A6
+
+            dot.push_str(&format!(
+                "\t{} [label={:?} color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];\n",
+                node.id.0, node.activation
+            ));
+        }
+
+        dot.push_str("\n");
+
+        dot.push_str("\tcomment=\"Feedforward Connections\"\n");
+        for connection in genome.feed_forward.iter() {
+            dot.push_str(&format!(
+                "\t{0} -> {1} [label=\"{2:+.3}\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
+                connection.input.0,
+                connection.output.0,
+                connection.weight,
+                connection.weight.abs()
+            ));
+        }
+
+        dot.push_str("\tcomment=\"Recurrent Connections\"\n");
+        for connection in genome.recurrent.iter() {
+            // color: FF8000
+
+            dot.push_str(&format!(
+                "\t{0} -> {1} [label=\"{2:+.3}\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?} color=\"#FF8000\"];\n",
+                connection.input.0,
+                connection.output.0,
+                connection.weight,
+                connection.weight.abs()
+            ));
+        }
+
+        dot.push_str("}\n");
+        dot
+    }
 }
 
 #[cfg(test)]
@@ -479,5 +551,65 @@ mod tests {
         let genome_1_hash = hasher.finish();
 
         assert_eq!(genome_0_hash, genome_1_hash);
+    }
+
+    #[test]
+    fn create_dot_from_genome() {
+        let genome = Genome {
+            inputs: Genes(
+                vec![Node::new(Id(0), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            outputs: Genes(
+                vec![Node::new(Id(1), Activation::Linear)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            hidden: Genes(
+                vec![Node::new(Id(2), Activation::Tanh)]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            feed_forward: Genes(
+                vec![
+                    Connection::new(Id(0), 0.25795942718883524, Id(2)),
+                    Connection::new(Id(2), -0.09736946507786626, Id(1)),
+                ]
+                .iter()
+                .cloned()
+                .collect(),
+            ),
+            recurrent: Genes(
+                vec![Connection::new(Id(1), 0.19777863112749228, Id(2))]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            ),
+            ..Default::default()
+        };
+
+        // let dot = "digraph {\n\t0 [label=Linear color=\"#D6B656\" fillcolor=\"#FFF2CC\" style=\"filled\"];\n\t2 [label=Tanh color=\"#6C8EBF\" fillcolor=\"#DAE8FC\" style=\"filled\"];\n\t1 [label=Linear color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];\n\t0 -> 2 [label=0.25795942718883524];\n\t2 -> 1 [label=0.09736946507786626];\n\t1 -> 2 [label=0.19777863112749228 color=\"#FF8000\"];\n}\n";
+
+        let dot = "digraph {
+\tcomment=\"Input Nodes\"
+\t0 [label=Linear color=\"#D6B656\" fillcolor=\"#FFF2CC\" style=\"filled\"];
+\tcomment=\"Hidden Nodes\"
+\t2 [label=Tanh color=\"#6C8EBF\" fillcolor=\"#DAE8FC\" style=\"filled\"];
+\tcomment=\"Output Nodes\"
+\t1 [label=Linear color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];
+
+\tcomment=\"Feedforward Connections\"
+\t0 -> 2 [label=\"+0.258\" arrowsize=0.25795942718883524 penwidth=0.25795942718883524 tooltip=0.25795942718883524 labeltooltip=0.25795942718883524];
+\t2 -> 1 [label=\"-0.097\" arrowsize=0.09736946507786626 penwidth=0.09736946507786626 tooltip=-0.09736946507786626 labeltooltip=-0.09736946507786626];
+\tcomment=\"Recurrent Connections\"
+\t1 -> 2 [label=\"+0.198\" arrowsize=0.19777863112749228 penwidth=0.19777863112749228 tooltip=0.19777863112749228 labeltooltip=0.19777863112749228 color=\"#FF8000\"];
+}
+";
+
+        assert_eq!(&Genome::dot(&genome), dot)
     }
 }
