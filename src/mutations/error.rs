@@ -12,4 +12,6 @@ pub enum MutationError {
     CouldNotRemoveFeedForwardConnection,
     #[error("No removable recurrent connection present in the genome.")]
     CouldNotRemoveRecurrentConnection,
+    #[error("No hidden node to duplicate was present in the genome.")]
+    CouldNotDuplicateNode,
 }

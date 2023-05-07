@@ -1,3 +1,4 @@
+use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
@@ -18,11 +19,24 @@ pub mod activations;
 pub struct Node {
     pub id: Id,
     pub activation: Activation,
+    pub id_counter: u64,
 }
 
 impl Node {
     pub fn new(id: Id, activation: Activation) -> Self {
-        Node { id, activation }
+        Node {
+            id,
+            activation,
+            id_counter: 0,
+        }
+    }
+
+    pub fn next_id(&mut self) -> Id {
+        let mut id_hasher = SeaHasher::new();
+        self.id.hash(&mut id_hasher);
+        self.id_counter.hash(&mut id_hasher);
+        self.id_counter += 1;
+        Id(id_hasher.finish())
     }
 }
 

@@ -12,6 +12,7 @@ mod add_node;
 mod add_recurrent_connection;
 mod change_activation;
 mod change_weights;
+mod duplicate_node;
 mod error;
 mod remove_connection;
 mod remove_node;
@@ -50,6 +51,8 @@ pub enum Mutations {
     RemoveConnection { chance: f64 },
     /// See [`Mutations::remove_recurrent_connection`].
     RemoveRecurrentConnection { chance: f64 },
+    /// See [`Mutations::duplicate_node`].
+    DuplicateNode { chance: f64 },
 }
 
 impl Mutations {
@@ -106,6 +109,11 @@ impl Mutations {
             &Mutations::RemoveRecurrentConnection { chance } => {
                 if rng.gen::<f64>() < chance {
                     return Self::remove_recurrent_connection(genome, rng);
+                }
+            }
+            &Mutations::DuplicateNode { chance } => {
+                if rng.gen::<f64>() < chance {
+                    return Self::duplicate_node(genome, rng);
                 }
             }
         }
