@@ -139,12 +139,15 @@ mod tests {
         assert_eq!(genome.feed_forward.len(), 3);
 
         assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert_eq!(genome.recurrent.len(), 1);
+        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert_eq!(genome.recurrent.len(), 4);
 
         assert!(Mutations::duplicate_node(&mut genome, &mut thread_rng()).is_ok());
 
         assert_eq!(genome.feed_forward.len(), 5);
-        assert_eq!(genome.recurrent.len(), 2);
+        assert_eq!(genome.recurrent.len(), 7);
         assert_eq!(genome.hidden.len(), 2);
     }
 
