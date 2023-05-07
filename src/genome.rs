@@ -173,65 +173,83 @@ impl Genome {
     /// [2]: https://dreampuf.github.io/GraphvizOnline
     pub fn dot(genome: &Self) -> String {
         let mut dot = "digraph {\n".to_owned();
+        dot.push_str("\tgraph [splines=curved ranksep=8]\n");
 
-        dot.push_str("\tcomment=\"Input Nodes\"\n");
+        dot.push_str("\tsubgraph cluster_inputs {\n");
+        dot.push_str("\t\tgraph [label=\"Inputs\"]\n");
+        dot.push_str("\t\tnode [color=\"#D6B656\", fillcolor=\"#FFF2CC\", style=\"filled\"]\n");
+        dot.push_str("\n");
         for node in genome.inputs.iter() {
             // fill color: FFF2CC
             // line color: D6B656
 
             dot.push_str(&format!(
-                "\t{} [label={:?} color=\"#D6B656\" fillcolor=\"#FFF2CC\" style=\"filled\"];\n",
+                "\t\t{} [label={:?}];\n",
                 node.id.0, node.activation
             ));
         }
+        dot.push_str("\t}\n");
 
-        dot.push_str("\tcomment=\"Hidden Nodes\"\n");
+        dot.push_str("\tsubgraph hidden {\n");
+        dot.push_str("\t\tgraph [label=\"Hidden\" rank=\"same\"]\n");
+        dot.push_str("\t\tnode [color=\"#6C8EBF\", fillcolor=\"#DAE8FC\", style=\"filled\"]\n");
+        dot.push_str("\n");
         for node in genome.hidden.iter() {
             // fill color: DAE8FC
             // line color: 6C8EBF
 
             dot.push_str(&format!(
-                "\t{} [label={:?} color=\"#6C8EBF\" fillcolor=\"#DAE8FC\" style=\"filled\"];\n",
+                "\t\t{} [label={:?}];\n",
                 node.id.0, node.activation
             ));
         }
+        dot.push_str("\t}\n");
 
-        dot.push_str("\tcomment=\"Output Nodes\"\n");
+        dot.push_str("\tsubgraph cluster_outputs {\n");
+        dot.push_str("\t\tgraph [label=\"Outputs\" labelloc=\"b\"]\n");
+        dot.push_str("\t\tnode [color=\"#9673A6\", fillcolor=\"#E1D5E7\", style=\"filled\"]\n");
+        dot.push_str("\n");
         for node in genome.outputs.iter() {
             // fill color: E1D5E7
             // line color: 9673A6
 
             dot.push_str(&format!(
-                "\t{} [label={:?} color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];\n",
+                "\t\t{} [label={:?}];\n",
                 node.id.0, node.activation
             ));
         }
+        dot.push_str("\t}\n");
 
         dot.push_str("\n");
 
-        dot.push_str("\tcomment=\"Feedforward Connections\"\n");
+        dot.push_str("\tsubgraph feedforward_connections {\n");
+        dot.push_str("\n");
         for connection in genome.feed_forward.iter() {
             dot.push_str(&format!(
-                "\t{0} -> {1} [label=\"{2:+.3}\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
+                "\t\t{0} -> {1} [label=\"\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
                 connection.input.0,
                 connection.output.0,
                 connection.weight,
-                connection.weight.abs() * 0.9 + 0.1
+                connection.weight.abs() * 0.95 + 0.05
             ));
         }
+        dot.push_str("\t}\n");
 
-        dot.push_str("\tcomment=\"Recurrent Connections\"\n");
+        dot.push_str("\tsubgraph recurrent_connections {\n");
+        dot.push_str("\t\tedge [color=\"#FF8000\"]\n");
+        dot.push_str("\n");
         for connection in genome.recurrent.iter() {
             // color: FF8000
 
             dot.push_str(&format!(
-                "\t{0} -> {1} [label=\"{2:+.3}\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?} color=\"#FF8000\"];\n",
+                "\t\t{0} -> {1} [label=\"\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
                 connection.input.0,
                 connection.output.0,
                 connection.weight,
-                connection.weight.abs() * 0.9 + 0.1
+                connection.weight.abs() * 0.95 + 0.05
             ));
         }
+        dot.push_str("\t}\n");
 
         dot.push_str("}\n");
         dot
@@ -248,7 +266,7 @@ mod tests {
     use super::Genome;
     use crate::{
         genes::{Activation, Connection, Genes, Id, Node},
-        Mutations, Parameters,
+        Mutations, Parameters, Structure,
     };
 
     #[test]
@@ -595,21 +613,96 @@ mod tests {
         // let dot = "digraph {\n\t0 [label=Linear color=\"#D6B656\" fillcolor=\"#FFF2CC\" style=\"filled\"];\n\t2 [label=Tanh color=\"#6C8EBF\" fillcolor=\"#DAE8FC\" style=\"filled\"];\n\t1 [label=Linear color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];\n\t0 -> 2 [label=0.25795942718883524];\n\t2 -> 1 [label=0.09736946507786626];\n\t1 -> 2 [label=0.19777863112749228 color=\"#FF8000\"];\n}\n";
 
         let dot = "digraph {
-\tcomment=\"Input Nodes\"
-\t0 [label=Linear color=\"#D6B656\" fillcolor=\"#FFF2CC\" style=\"filled\"];
-\tcomment=\"Hidden Nodes\"
-\t2 [label=Tanh color=\"#6C8EBF\" fillcolor=\"#DAE8FC\" style=\"filled\"];
-\tcomment=\"Output Nodes\"
-\t1 [label=Linear color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];
+\tgraph [splines=curved ranksep=8]
+\tsubgraph cluster_inputs {
+\t\tgraph [label=\"Inputs\"]
+\t\tnode [color=\"#D6B656\", fillcolor=\"#FFF2CC\", style=\"filled\"]
 
-\tcomment=\"Feedforward Connections\"
-\t0 -> 2 [label=\"+0.258\" arrowsize=0.3321634844699517 penwidth=0.3321634844699517 tooltip=0.25795942718883524 labeltooltip=0.25795942718883524];
-\t2 -> 1 [label=\"-0.097\" arrowsize=0.18763251857007962 penwidth=0.18763251857007962 tooltip=-0.09736946507786626 labeltooltip=-0.09736946507786626];
-\tcomment=\"Recurrent Connections\"
-\t1 -> 2 [label=\"+0.198\" arrowsize=0.27800076801474305 penwidth=0.27800076801474305 tooltip=0.19777863112749228 labeltooltip=0.19777863112749228 color=\"#FF8000\"];
+\t\t0 [label=Linear];
+\t}
+\tsubgraph hidden {
+\t\tgraph [label=\"Hidden\" rank=\"same\"]
+\t\tnode [color=\"#6C8EBF\", fillcolor=\"#DAE8FC\", style=\"filled\"]
+
+\t\t2 [label=Tanh];
+\t}
+\tsubgraph cluster_outputs {
+\t\tgraph [label=\"Outputs\" labelloc=\"b\"]
+\t\tnode [color=\"#9673A6\", fillcolor=\"#E1D5E7\", style=\"filled\"]
+
+\t\t1 [label=Linear];
+\t}
+
+\tsubgraph feedforward_connections {
+
+\t\t0 -> 2 [label=\"\" arrowsize=0.29506145582939347 penwidth=0.29506145582939347 tooltip=0.25795942718883524 labeltooltip=0.25795942718883524];
+\t\t2 -> 1 [label=\"\" arrowsize=0.14250099182397294 penwidth=0.14250099182397294 tooltip=-0.09736946507786626 labeltooltip=-0.09736946507786626];
+\t}
+\tsubgraph recurrent_connections {
+\t\tedge [color=\"#FF8000\"]
+
+\t\t1 -> 2 [label=\"\" arrowsize=0.23788969957111766 penwidth=0.23788969957111766 tooltip=0.19777863112749228 labeltooltip=0.19777863112749228];
+\t}
 }
 ";
-
         assert_eq!(&Genome::dot(&genome), dot)
+    }
+
+    #[test]
+    fn print_big_dot() {
+        let parameters = Parameters {
+            structure: Structure {
+                number_of_inputs: 10,
+                number_of_outputs: 10,
+                percent_of_connected_inputs: 0.2,
+                ..Default::default()
+            },
+            mutations: vec![
+                Mutations::ChangeWeights {
+                    chance: 1.0,
+                    percent_perturbed: 0.5,
+                    standard_deviation: 0.1,
+                },
+                Mutations::ChangeActivation {
+                    chance: 0.05,
+                    activation_pool: vec![
+                        Activation::Linear,
+                        Activation::Sigmoid,
+                        Activation::Tanh,
+                        Activation::Gaussian,
+                        Activation::Step,
+                        Activation::Sine,
+                        Activation::Cosine,
+                        Activation::Inverse,
+                        Activation::Absolute,
+                        Activation::Relu,
+                    ],
+                },
+                Mutations::AddNode {
+                    chance: 0.005,
+                    activation_pool: vec![
+                        Activation::Linear,
+                        Activation::Sigmoid,
+                        Activation::Tanh,
+                        Activation::Gaussian,
+                        Activation::Step,
+                        Activation::Sine,
+                        Activation::Cosine,
+                        Activation::Inverse,
+                        Activation::Absolute,
+                        Activation::Relu,
+                    ],
+                },
+                Mutations::AddConnection { chance: 0.01 },
+                Mutations::AddRecurrentConnection { chance: 0.01 },
+            ],
+        };
+        let mut genome = Genome::initialized(&parameters);
+
+        for _ in 0..1000 {
+            genome.mutate(&parameters);
+        }
+
+        print!("{}", Genome::dot(&genome));
     }
 }
