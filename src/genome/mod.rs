@@ -216,7 +216,7 @@ impl Genome {
                 connection.input.0,
                 connection.output.0,
                 connection.weight,
-                connection.weight.abs()
+                connection.weight.abs() * 0.9 + 0.1
             ));
         }
 
@@ -229,7 +229,7 @@ impl Genome {
                 connection.input.0,
                 connection.output.0,
                 connection.weight,
-                connection.weight.abs()
+                connection.weight.abs() * 0.9 + 0.1
             ));
         }
 
@@ -603,10 +603,10 @@ mod tests {
 \t1 [label=Linear color=\"#9673A6\" fillcolor=\"#E1D5E7\" style=\"filled\"];
 
 \tcomment=\"Feedforward Connections\"
-\t0 -> 2 [label=\"+0.258\" arrowsize=0.25795942718883524 penwidth=0.25795942718883524 tooltip=0.25795942718883524 labeltooltip=0.25795942718883524];
-\t2 -> 1 [label=\"-0.097\" arrowsize=0.09736946507786626 penwidth=0.09736946507786626 tooltip=-0.09736946507786626 labeltooltip=-0.09736946507786626];
+\t0 -> 2 [label=\"+0.258\" arrowsize=0.3321634844699517 penwidth=0.3321634844699517 tooltip=0.25795942718883524 labeltooltip=0.25795942718883524];
+\t2 -> 1 [label=\"-0.097\" arrowsize=0.18763251857007962 penwidth=0.18763251857007962 tooltip=-0.09736946507786626 labeltooltip=-0.09736946507786626];
 \tcomment=\"Recurrent Connections\"
-\t1 -> 2 [label=\"+0.198\" arrowsize=0.19777863112749228 penwidth=0.19777863112749228 tooltip=0.19777863112749228 labeltooltip=0.19777863112749228 color=\"#FF8000\"];
+\t1 -> 2 [label=\"+0.198\" arrowsize=0.27800076801474305 penwidth=0.27800076801474305 tooltip=0.19777863112749228 labeltooltip=0.19777863112749228 color=\"#FF8000\"];
 }
 ";
 
