@@ -27,10 +27,9 @@ impl Mutations {
 
         for start_node in possible_start_nodes {
             if let Some(end_node) = possible_end_nodes.iter().cloned().find(|&end_node| {
-                end_node != start_node
-                    && !genome
-                        .recurrent
-                        .contains(&Connection::new(start_node.id, 0.0, end_node.id))
+                !genome
+                    .recurrent
+                    .contains(&Connection::new(start_node.id, 0.0, end_node.id))
             }) {
                 assert!(genome.recurrent.insert(Connection::new(
                     start_node.id,
@@ -65,6 +64,10 @@ mod tests {
     fn dont_add_same_connection_twice() {
         let mut genome = Genome::initialized(&Parameters::default());
 
+        // create all possible recurrent connections
+        Mutations::add_recurrent_connection(&mut genome, &mut thread_rng())
+            .expect("y no add recurrent connection");
+
         Mutations::add_recurrent_connection(&mut genome, &mut thread_rng())
             .expect("y no add recurrent connection");
 
@@ -74,6 +77,6 @@ mod tests {
             unreachable!()
         }
 
-        assert_eq!(genome.recurrent.len(), 1);
+        assert_eq!(genome.recurrent.len(), 2);
     }
 }

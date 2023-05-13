@@ -71,7 +71,7 @@ impl Mutations {
             let mut outgoing_recurrent_connections = genome
                 .recurrent
                 .iter()
-                .filter(|c| c.input == random_hidden_node.id)
+                .filter(|c| c.input == random_hidden_node.id && c.output != random_hidden_node.id)
                 .cloned()
                 .collect::<Vec<_>>();
 
@@ -79,7 +79,7 @@ impl Mutations {
             let incoming_recurrent_connections = genome
                 .recurrent
                 .iter()
-                .filter(|c| c.output == random_hidden_node.id)
+                .filter(|c| c.output == random_hidden_node.id && c.input != random_hidden_node.id)
                 .cloned()
                 .collect::<Vec<_>>();
 
@@ -111,6 +111,17 @@ impl Mutations {
                 assert!(genome.recurrent.insert(connection))
             }
 
+            if let Some(self_loop) = genome
+                .recurrent
+                .iter()
+                .find(|c| c.input == random_hidden_node.id && c.output == random_hidden_node.id)
+            {
+                let mut new_self_loop = self_loop.clone();
+                new_self_loop.input = new_node.id;
+                new_self_loop.output = new_node.id;
+                assert!(genome.recurrent.insert(new_self_loop))
+            }
+
             // replace selected node with updated id_counter
             assert!(genome.hidden.replace(random_hidden_node).is_some());
 
@@ -138,16 +149,21 @@ mod tests {
         assert_eq!(genome.hidden.len(), 1);
         assert_eq!(genome.feed_forward.len(), 3);
 
+        // create all possible recurrent connections
         assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
         assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
         assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
         assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert_eq!(genome.recurrent.len(), 4);
+        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert_eq!(genome.recurrent.len(), 6);
 
         assert!(Mutations::duplicate_node(&mut genome, &mut thread_rng()).is_ok());
 
+        println!("{}", Genome::dot(&genome));
+
         assert_eq!(genome.feed_forward.len(), 5);
-        assert_eq!(genome.recurrent.len(), 7);
+        assert_eq!(genome.recurrent.len(), 10);
         assert_eq!(genome.hidden.len(), 2);
     }
 
