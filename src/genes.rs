@@ -76,13 +76,6 @@ impl<T: Gene> DerefMut for Genes<T> {
 }
 
 impl<T: Gene> Genes<T> {
-    pub fn iterate_with_random_offset(&self, rng: &mut impl Rng) -> impl Iterator<Item = &T> {
-        self.iter()
-            .cycle()
-            .skip((rng.gen::<f64>() * self.len() as f64).floor() as usize)
-            .take(self.len())
-    }
-
     pub fn random(&self, rng: &mut impl Rng) -> Option<&T> {
         self.iter().choose(rng)
     }

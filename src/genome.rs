@@ -8,7 +8,7 @@ use crate::{
     parameters::Structure,
 };
 
-use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
+use rand::{rngs::SmallRng, seq::SliceRandom, thread_rng, Rng, SeedableRng};
 use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 
@@ -77,9 +77,12 @@ impl Genome {
 
     /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
     pub fn init(&mut self, structure: &Structure) {
-        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
+        let rng = &mut SmallRng::from_rng(thread_rng()).unwrap();
 
-        for input in self.inputs.iterate_with_random_offset(&mut rng).take(
+        let mut possible_inputs = self.inputs.iter().collect::<Vec<_>>();
+        possible_inputs.shuffle(rng);
+
+        for input in possible_inputs.iter().take(
             (structure.percent_of_connected_inputs * structure.number_of_inputs as f64).ceil()
                 as usize,
         ) {
