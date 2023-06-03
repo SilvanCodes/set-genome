@@ -22,6 +22,7 @@ config = "0.11"
 favannat = { version = "0.6.2", optional = true }
 thiserror = "1.0.30"
 seahash = "4.1.0"
+bitvec = {version = "1.0.1", features = ["serde"]}
 
 [dev-dependencies]
 criterion = "0.3"

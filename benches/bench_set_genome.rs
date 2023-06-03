@@ -40,8 +40,8 @@ pub fn crossover_highly_mutated_genomes_benchmark(c: &mut Criterion) {
     let mut genome_1 = Genome::initialized(&parameters);
 
     for _ in 0..100 {
-        genome_0.mutate(&parameters).expect("mutation");
-        genome_1.mutate(&parameters).expect("mutation");
+        genome_0.mutate(&parameters).ok();
+        genome_1.mutate(&parameters).ok();
     }
 
     c.bench_function("crossover highly mutated genomes", |b| {

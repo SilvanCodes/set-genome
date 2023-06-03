@@ -158,9 +158,8 @@ impl Default for Parameters {
             structure: Structure::default(),
             mutations: vec![
                 Mutations::ChangeWeights {
-                    chance: 1.0,
-                    percent_perturbed: 0.5,
-                    standard_deviation: 0.1,
+                    mutation_rate: 0.1,
+                    duplication_rate: 0.0,
                 },
                 Mutations::ChangeActivation {
                     chance: 0.05,
@@ -207,9 +206,8 @@ impl Parameters {
             structure: Structure::basic(number_of_inputs, number_of_outputs),
             mutations: vec![
                 Mutations::ChangeWeights {
-                    chance: 1.0,
-                    percent_perturbed: 0.5,
-                    standard_deviation: 0.1,
+                    mutation_rate: 0.1,
+                    duplication_rate: 0.0,
                 },
                 Mutations::AddNode {
                     chance: 0.01,

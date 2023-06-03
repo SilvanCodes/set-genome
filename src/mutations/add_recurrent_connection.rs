@@ -31,9 +31,9 @@ impl Mutations {
                     .recurrent
                     .contains(&Connection::new(start_node.id, 0.0, end_node.id))
             }) {
-                assert!(genome.recurrent.insert(Connection::new(
+                assert!(genome.recurrent.insert(Connection::from_u64(
                     start_node.id,
-                    Connection::weight_perturbation(0.0, 0.1, rng),
+                    rng.gen(),
                     end_node.id,
                 )));
                 return Ok(());

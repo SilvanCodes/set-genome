@@ -106,14 +106,14 @@ impl CompatibilityDistance {
             .feed_forward
             .iterate_matching_genes(&genome_1.feed_forward)
             .inspect(|(connection_0, connection_1)| {
-                weight_difference += (connection_0.weight - connection_1.weight).abs();
+                weight_difference += (connection_0.weight() - connection_1.weight()).abs();
             })
             .count()
             + genome_0
                 .recurrent
                 .iterate_matching_genes(&genome_1.recurrent)
                 .inspect(|(connection_0, connection_1)| {
-                    weight_difference += (connection_0.weight - connection_1.weight).abs();
+                    weight_difference += (connection_0.weight() - connection_1.weight()).abs();
                 })
                 .count()) as f64;
 

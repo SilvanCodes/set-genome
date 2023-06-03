@@ -45,7 +45,7 @@ impl Mutations {
 
             // update weights
             for connection in outgoing_feedforward_connections.iter_mut() {
-                connection.weight = connection.weight / 2.0;
+                connection.set_weight(connection.weight() / 2.0);
                 let mut new_connection = connection.clone();
                 new_connection.input = new_node.id;
                 new_feedworward_connections.push(new_connection);
@@ -89,7 +89,7 @@ impl Mutations {
 
             // update weights
             for connection in outgoing_recurrent_connections.iter_mut() {
-                connection.weight = connection.weight / 2.0;
+                connection.set_weight(connection.weight() / 2.0);
                 let mut new_connection = connection.clone();
                 new_connection.input = new_node.id;
                 new_recurrent_connections.push(new_connection);

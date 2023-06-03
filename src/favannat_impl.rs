@@ -34,7 +34,7 @@ impl EdgeLike for Connection {
         self.output.0 as usize
     }
     fn weight(&self) -> f64 {
-        self.weight
+        self.weight()
     }
 }
 
@@ -82,9 +82,8 @@ mod tests {
             },
             mutations: vec![
                 Mutations::ChangeWeights {
-                    chance: 0.8,
-                    percent_perturbed: 0.5,
-                    standard_deviation: 0.2,
+                    mutation_rate: 0.2,
+                    duplication_rate: 0.0,
                 },
                 Mutations::AddNode {
                     chance: 0.1,

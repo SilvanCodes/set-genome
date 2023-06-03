@@ -27,9 +27,8 @@ mod remove_recurrent_connection;
 pub enum Mutations {
     /// See [`Mutations::change_weights`].
     ChangeWeights {
-        chance: f64,
-        percent_perturbed: f64,
-        standard_deviation: f64,
+        mutation_rate: f64,
+        duplication_rate: f64,
     },
     /// See [`Mutations::change_activation`].
     ChangeActivation {
@@ -62,13 +61,10 @@ impl Mutations {
     pub fn mutate(&self, genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
         match self {
             &Mutations::ChangeWeights {
-                chance,
-                percent_perturbed,
-                standard_deviation,
+                mutation_rate,
+                duplication_rate,
             } => {
-                if rng.gen::<f64>() < chance {
-                    Self::change_weights(percent_perturbed, standard_deviation, genome, rng);
-                }
+                Self::change_weights(mutation_rate, duplication_rate, genome, rng);
             }
             Mutations::AddNode {
                 chance,

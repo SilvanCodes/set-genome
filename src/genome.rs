@@ -88,12 +88,27 @@ impl Genome {
         ) {
             // connect to every output
             for output in self.outputs.iter() {
-                assert!(self.feed_forward.insert(Connection::new(
+                assert!(self.feed_forward.insert(Connection::from_u64(
                     input.id,
-                    Connection::weight_perturbation(0.0, 0.1, &mut rng),
+                    rng.gen(),
                     output.id
                 )));
             }
+        }
+    }
+
+    /// Connects each output to a random input.
+    ///
+    /// This is the minimum required connectivity for the genome to be evaluatable.
+    pub fn mimimum_init(&mut self) {
+        let rng = &mut SmallRng::from_rng(thread_rng()).unwrap();
+
+        for output in self.outputs.iter() {
+            assert!(self.feed_forward.insert(Connection::from_u64(
+                self.inputs.random(rng).unwrap().id,
+                rng.gen(),
+                output.id
+            )));
         }
     }
 
@@ -226,30 +241,31 @@ impl Genome {
         dot.push_str("\n");
 
         dot.push_str("\tsubgraph feedforward_connections {\n");
+        dot.push_str("\t\tedge [label=\"\"]\n");
         dot.push_str("\n");
         for connection in genome.feed_forward.iter() {
             dot.push_str(&format!(
-                "\t\t{0} -> {1} [label=\"\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
+                "\t\t{0} -> {1} [arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
                 connection.input.0,
                 connection.output.0,
-                connection.weight,
-                connection.weight.abs() * 0.95 + 0.05
+                connection.weight(),
+                connection.weight().abs() * 0.95 + 0.05
             ));
         }
         dot.push_str("\t}\n");
 
         dot.push_str("\tsubgraph recurrent_connections {\n");
-        dot.push_str("\t\tedge [color=\"#FF8000\"]\n");
+        dot.push_str("\t\tedge [label=\"\" color=\"#FF8000\"]\n");
         dot.push_str("\n");
         for connection in genome.recurrent.iter() {
             // color: FF8000
 
             dot.push_str(&format!(
-                "\t\t{0} -> {1} [label=\"\" arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
+                "\t\t{0} -> {1} [arrowsize={3:?} penwidth={3:?} tooltip={2:?} labeltooltip={2:?}];\n",
                 connection.input.0,
                 connection.output.0,
-                connection.weight,
-                connection.weight.abs() * 0.95 + 0.05
+                connection.weight(),
+                connection.weight().abs() * 0.95 + 0.05
             ));
         }
         dot.push_str("\t}\n");
@@ -637,14 +653,15 @@ mod tests {
 \t}
 
 \tsubgraph feedforward_connections {
+\t\tedge [label=\"\"]
 
-\t\t0 -> 2 [label=\"\" arrowsize=0.29506145582939347 penwidth=0.29506145582939347 tooltip=0.25795942718883524 labeltooltip=0.25795942718883524];
-\t\t2 -> 1 [label=\"\" arrowsize=0.14250099182397294 penwidth=0.14250099182397294 tooltip=-0.09736946507786626 labeltooltip=-0.09736946507786626];
+\t\t0 -> 2 [arrowsize=0.2875 penwidth=0.2875 tooltip=0.25 labeltooltip=0.25];
+\t\t2 -> 1 [arrowsize=0.05 penwidth=0.05 tooltip=0.0 labeltooltip=0.0];
 \t}
 \tsubgraph recurrent_connections {
-\t\tedge [color=\"#FF8000\"]
+\t\tedge [label=\"\" color=\"#FF8000\"]
 
-\t\t1 -> 2 [label=\"\" arrowsize=0.23788969957111766 penwidth=0.23788969957111766 tooltip=0.19777863112749228 labeltooltip=0.19777863112749228];
+\t\t1 -> 2 [arrowsize=0.22812499999999997 penwidth=0.22812499999999997 tooltip=0.1875 labeltooltip=0.1875];
 \t}
 }
 ";
@@ -662,9 +679,8 @@ mod tests {
             },
             mutations: vec![
                 Mutations::ChangeWeights {
-                    chance: 1.0,
-                    percent_perturbed: 0.5,
-                    standard_deviation: 0.1,
+                    mutation_rate: 0.1,
+                    duplication_rate: 0.0,
                 },
                 Mutations::ChangeActivation {
                     chance: 0.05,

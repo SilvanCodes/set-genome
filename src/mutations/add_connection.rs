@@ -35,9 +35,9 @@ impl Mutations {
                     && !genome.would_form_cycle(start_node, end_node)
             }) {
                 // add new feed-forward connection
-                assert!(genome.feed_forward.insert(Connection::new(
+                assert!(genome.feed_forward.insert(Connection::from_u64(
                     start_node.id,
-                    Connection::weight_perturbation(0.0, 0.1, rng),
+                    rng.gen(),
                     end_node.id,
                 )));
                 return Ok(());

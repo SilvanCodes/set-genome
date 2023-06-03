@@ -33,14 +33,14 @@ impl Mutations {
         // insert new connection pointing from new node
         assert!(genome.feed_forward.insert(Connection::new(
             new_node.id,
-            random_connection.weight,
+            random_connection.weight(),
             random_connection.output,
         )));
         // insert new node into genome
         assert!(genome.hidden.insert(new_node));
 
         // update weight to zero to 'deactivate' connnection
-        random_connection.weight = 0.0;
+        random_connection.set_weight(0.0);
         genome.feed_forward.replace(random_connection);
     }
 }
