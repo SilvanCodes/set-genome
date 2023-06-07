@@ -21,7 +21,7 @@ impl Mutations {
             }
 
             // construct new node gene
-            let new_node = Node::new(id, random_hidden_node.activation);
+            let new_node = Node::hidden(id, random_hidden_node.activation);
 
             // duplicate outgoing feedforward connections
             let mut outgoing_feedforward_connections = genome

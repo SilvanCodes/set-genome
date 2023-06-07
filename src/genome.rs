@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    genes::{Activation, Connection, Genes, Id, Node},
+    genes::{Connection, Genes, Id, Node},
     parameters::Structure,
 };
 
@@ -46,10 +46,12 @@ impl Genome {
 
         Genome {
             inputs: (0..structure.number_of_inputs)
-                .map(|_| Node::new(Id(rng.gen::<u64>()), Activation::Linear))
+                .map(|order| Node::input(Id(rng.gen::<u64>()), order))
                 .collect(),
             outputs: (0..structure.number_of_outputs)
-                .map(|_| Node::new(Id(rng.gen::<u64>()), structure.outputs_activation))
+                .map(|order| {
+                    Node::output(Id(rng.gen::<u64>()), order, structure.outputs_activation)
+                })
                 .collect(),
             ..Default::default()
         }
@@ -64,7 +66,7 @@ impl Genome {
     }
 
     pub fn contains(&self, id: Id) -> bool {
-        let fake_node = &Node::new(id, Activation::Linear);
+        let fake_node = &Node::input(id, 0);
         self.inputs.contains(fake_node)
             || self.hidden.contains(fake_node)
             || self.outputs.contains(fake_node)
@@ -90,7 +92,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    Connection::weight_perturbation(0.0, 0.1, &mut rng),
+                    Connection::weight_perturbation(0.0, 0.1, rng),
                     output.id
                 )));
             }
@@ -126,6 +128,7 @@ impl Genome {
             // use input and outputs from fitter, but they should be identical with weaker
             inputs: self.inputs.clone(),
             outputs: self.outputs.clone(),
+            ..Default::default()
         }
     }
 
@@ -276,16 +279,13 @@ mod tests {
     fn find_alternative_input() {
         let genome = Genome {
             inputs: Genes(
-                vec![
-                    Node::new(Id(0), Activation::Linear),
-                    Node::new(Id(1), Activation::Linear),
-                ]
-                .iter()
-                .cloned()
-                .collect(),
+                vec![Node::input(Id(0), 0), Node::input(Id(1), 1)]
+                    .iter()
+                    .cloned()
+                    .collect(),
             ),
             outputs: Genes(
-                vec![Node::new(Id(2), Activation::Linear)]
+                vec![Node::output(Id(2), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -308,14 +308,9 @@ mod tests {
     #[test]
     fn find_no_alternative_input() {
         let genome = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -335,16 +330,11 @@ mod tests {
     #[test]
     fn find_alternative_output() {
         let genome = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
                 vec![
-                    Node::new(Id(2), Activation::Linear),
-                    Node::new(Id(1), Activation::Linear),
+                    Node::output(Id(2), 0, Activation::Linear),
+                    Node::output(Id(1), 0, Activation::Linear),
                 ]
                 .iter()
                 .cloned()
@@ -368,14 +358,9 @@ mod tests {
     #[test]
     fn find_no_alternative_output() {
         let genome = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -448,22 +433,17 @@ mod tests {
         // "mirrored" structure as simplest example
 
         let mut genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
             ),
             hidden: Genes(
                 vec![
-                    Node::new(Id(2), Activation::Tanh),
-                    Node::new(Id(3), Activation::Tanh),
+                    Node::hidden(Id(2), Activation::Tanh),
+                    Node::hidden(Id(3), Activation::Tanh),
                 ]
                 .iter()
                 .cloned()
@@ -511,16 +491,13 @@ mod tests {
     fn hash_genome() {
         let genome_0 = Genome {
             inputs: Genes(
-                vec![
-                    Node::new(Id(1), Activation::Linear),
-                    Node::new(Id(0), Activation::Linear),
-                ]
-                .iter()
-                .cloned()
-                .collect(),
+                vec![Node::input(Id(1), 0), Node::input(Id(0), 0)]
+                    .iter()
+                    .cloned()
+                    .collect(),
             ),
             outputs: Genes(
-                vec![Node::new(Id(2), Activation::Linear)]
+                vec![Node::output(Id(2), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -537,16 +514,13 @@ mod tests {
 
         let genome_1 = Genome {
             inputs: Genes(
-                vec![
-                    Node::new(Id(0), Activation::Linear),
-                    Node::new(Id(1), Activation::Linear),
-                ]
-                .iter()
-                .cloned()
-                .collect(),
+                vec![Node::input(Id(0), 0), Node::input(Id(1), 0)]
+                    .iter()
+                    .cloned()
+                    .collect(),
             ),
             outputs: Genes(
-                vec![Node::new(Id(2), Activation::Linear)]
+                vec![Node::output(Id(2), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -577,20 +551,15 @@ mod tests {
     #[test]
     fn create_dot_from_genome() {
         let genome = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
             ),
             hidden: Genes(
-                vec![Node::new(Id(2), Activation::Tanh)]
+                vec![Node::hidden(Id(2), Activation::Tanh)]
                     .iter()
                     .cloned()
                     .collect(),

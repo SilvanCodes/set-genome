@@ -22,7 +22,7 @@ impl Mutations {
         }
 
         // construct new node gene
-        let new_node = Node::new(id, activation_pool.choose(rng).cloned().unwrap());
+        let new_node = Node::hidden(id, activation_pool.choose(rng).cloned().unwrap());
 
         // insert new connection pointing to new node
         assert!(genome.feed_forward.insert(Connection::new(

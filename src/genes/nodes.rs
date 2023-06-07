@@ -18,14 +18,34 @@ pub mod activations;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Node {
     pub id: Id,
+    pub order: usize,
     pub activation: Activation,
     pub id_counter: u64,
 }
 
 impl Node {
-    pub fn new(id: Id, activation: Activation) -> Self {
+    pub fn input(id: Id, order: usize) -> Self {
         Node {
             id,
+            order,
+            activation: Activation::Linear,
+            id_counter: 0,
+        }
+    }
+
+    pub fn output(id: Id, order: usize, activation: Activation) -> Self {
+        Node {
+            id,
+            order,
+            activation,
+            id_counter: 0,
+        }
+    }
+
+    pub fn hidden(id: Id, activation: Activation) -> Self {
+        Node {
+            id,
+            order: 0,
             activation,
             id_counter: 0,
         }
@@ -71,6 +91,6 @@ impl PartialOrd for Node {
 
 impl Ord for Node {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.id.cmp(&other.id)
+        self.order.cmp(&other.order)
     }
 }

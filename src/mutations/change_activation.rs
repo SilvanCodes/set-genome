@@ -16,7 +16,7 @@ impl Mutations {
         rng: &mut impl Rng,
     ) {
         if let Some(node) = genome.hidden.random(rng) {
-            let updated = Node::new(
+            let updated = Node::hidden(
                 node.id,
                 activation_pool
                     .iter()

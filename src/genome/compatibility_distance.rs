@@ -183,14 +183,9 @@ mod tests {
     #[test]
     fn compatability_distance_same_genome() {
         let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -216,14 +211,9 @@ mod tests {
     #[test]
     fn compatability_distance_different_weight_genome() {
         let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -262,14 +252,9 @@ mod tests {
     #[test]
     fn compatability_distance_different_connection_genome() {
         let genome_0 = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),

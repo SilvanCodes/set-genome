@@ -77,23 +77,18 @@ mod tests {
     #[test]
     fn can_remove_node() {
         let mut genome = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             hidden: Genes(
                 vec![
-                    Node::new(Id(2), Activation::Linear),
-                    Node::new(Id(3), Activation::Linear),
+                    Node::hidden(Id(2), Activation::Linear),
+                    Node::hidden(Id(3), Activation::Linear),
                 ]
                 .iter()
                 .cloned()
                 .collect(),
             ),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
@@ -118,20 +113,15 @@ mod tests {
     #[test]
     fn can_not_remove_node() {
         let mut genome = Genome {
-            inputs: Genes(
-                vec![Node::new(Id(0), Activation::Linear)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-            ),
+            inputs: Genes(vec![Node::input(Id(0), 0)].iter().cloned().collect()),
             hidden: Genes(
-                vec![Node::new(Id(2), Activation::Linear)]
+                vec![Node::hidden(Id(2), Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
             ),
             outputs: Genes(
-                vec![Node::new(Id(1), Activation::Linear)]
+                vec![Node::output(Id(1), 0, Activation::Linear)]
                     .iter()
                     .cloned()
                     .collect(),
