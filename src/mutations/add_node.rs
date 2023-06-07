@@ -1,5 +1,3 @@
-use rand::{prelude::SliceRandom, Rng};
-
 use crate::{
     genes::{Activation, Connection, Node},
     genome::Genome,
@@ -10,9 +8,9 @@ use super::Mutations;
 impl Mutations {
     /// This mutation adds a new node to the genome by "splitting" an existing connection, i.e. the existing connection gets "re-routed" via the new node and the weight of the split connection is set to zero.
     /// The connection leading into the new node is of weight 1.0 and the connection originating from the new node has the same weight as the split connection (before it is zeroed).
-    pub fn add_node(activation_pool: &[Activation], genome: &mut Genome, rng: &mut impl Rng) {
+    pub fn add_node(activation_pool: &[Activation], genome: &mut Genome) {
         // select an connection gene and split
-        let mut random_connection = genome.feed_forward.random(rng).cloned().unwrap();
+        let mut random_connection = genome.feed_forward.random(&genome.rng).cloned().unwrap();
 
         let mut id = random_connection.next_id();
 
@@ -22,7 +20,16 @@ impl Mutations {
         }
 
         // construct new node gene
-        let new_node = Node::hidden(id, activation_pool.choose(rng).cloned().unwrap());
+        let new_node = Node::hidden(
+            id,
+            activation_pool
+                .iter()
+                .skip(genome.rng.usize(0..activation_pool.len()))
+                .take(1)
+                .next()
+                .cloned()
+                .unwrap(),
+        );
 
         // insert new connection pointing to new node
         assert!(genome.feed_forward.insert(Connection::new(
@@ -47,15 +54,13 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use rand::thread_rng;
-
     use crate::{activations::Activation, Genome, Mutations, Parameters};
 
     #[test]
     fn add_random_node() {
         let mut genome = Genome::initialized(&Parameters::default());
 
-        Mutations::add_node(&Activation::all(), &mut genome, &mut thread_rng());
+        Mutations::add_node(&Activation::all(), &mut genome);
 
         assert_eq!(genome.feed_forward.len(), 3);
     }
@@ -65,8 +70,8 @@ mod tests {
         let mut genome1 = Genome::initialized(&Parameters::default());
         let mut genome2 = Genome::initialized(&Parameters::default());
 
-        Mutations::add_node(&Activation::all(), &mut genome1, &mut thread_rng());
-        Mutations::add_node(&Activation::all(), &mut genome2, &mut thread_rng());
+        Mutations::add_node(&Activation::all(), &mut genome1);
+        Mutations::add_node(&Activation::all(), &mut genome2);
 
         assert_eq!(genome1.hidden, genome2.hidden);
     }

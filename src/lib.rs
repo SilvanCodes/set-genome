@@ -148,7 +148,6 @@ pub use genes::{activations, Connection, Id, Node};
 pub use genome::{CompatibilityDistance, Genome};
 pub use mutations::{MutationError, MutationResult, Mutations};
 pub use parameters::{Parameters, Structure};
-use rand::{rngs::SmallRng, thread_rng, SeedableRng};
 
 #[cfg(feature = "favannat")]
 mod favannat_impl;
@@ -160,12 +159,12 @@ mod parameters;
 impl Genome {
     /// Initialization connects the configured percent of inputs nodes to output nodes, i.e. it creates connection genes with random weights.
     pub fn uninitialized(parameters: &Parameters) -> Self {
-        Self::new(&parameters.structure)
+        Self::new(&parameters)
     }
 
     pub fn initialized(parameters: &Parameters) -> Self {
-        let mut genome = Genome::new(&parameters.structure);
-        genome.init(&parameters.structure);
+        let mut genome = Genome::new(&parameters);
+        genome.init();
         genome
     }
 
@@ -189,12 +188,12 @@ impl Genome {
     /// genome.mutate(&parameters);
     /// ```
     ///
-    pub fn mutate(&mut self, parameters: &Parameters) -> MutationResult {
-        let rng = &mut SmallRng::from_rng(thread_rng()).unwrap();
+    pub fn mutate(&mut self) -> MutationResult {
+        let mutations = &self.parameters.mutations.clone();
 
-        for mutation in &parameters.mutations {
+        for mutation in mutations {
             // gamble for application of mutation right here instead of in mutate() ??
-            mutation.mutate(self, rng)?
+            mutation.mutate(self)?
         }
         Ok(())
     }

@@ -1,16 +1,9 @@
-use rand::Rng;
-
 use super::Mutations;
 use crate::genome::Genome;
 
 impl Mutations {
     /// This mutation alters `percent_perturbed` connection weights sampled from a gaussian distribution with given `standard_deviation`.
-    pub fn change_weights(
-        percent_perturbed: f64,
-        standard_deviation: f64,
-        genome: &mut Genome,
-        rng: &mut impl Rng,
-    ) {
+    pub fn change_weights(percent_perturbed: f64, standard_deviation: f64, genome: &mut Genome) {
         let change_feed_forward_amount =
             (percent_perturbed * genome.feed_forward.len() as f64).ceil() as usize;
         let change_recurrent_amount =
@@ -18,11 +11,11 @@ impl Mutations {
 
         genome.feed_forward = genome
             .feed_forward
-            .drain_into_random(rng)
+            .drain_into_random(&genome.rng)
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_feed_forward_amount {
-                    connection.perturb_weight(standard_deviation, rng);
+                    connection.perturb_weight(standard_deviation, &genome.rng);
                 }
                 connection
             })
@@ -30,11 +23,11 @@ impl Mutations {
 
         genome.recurrent = genome
             .recurrent
-            .drain_into_random(rng)
+            .drain_into_random(&genome.rng)
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_recurrent_amount {
-                    connection.perturb_weight(standard_deviation, rng);
+                    connection.perturb_weight(standard_deviation, &genome.rng);
                 }
                 connection
             })
@@ -44,8 +37,6 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use rand::thread_rng;
-
     use crate::{Genome, Mutations, Parameters};
 
     #[test]
@@ -54,7 +45,7 @@ mod tests {
 
         let old_weight = genome.feed_forward.iter().next().unwrap().weight;
 
-        Mutations::change_weights(1.0, 1.0, &mut genome, &mut thread_rng());
+        Mutations::change_weights(1.0, 1.0, &mut genome);
 
         assert!(
             (old_weight - genome.feed_forward.iter().next().unwrap().weight).abs() > f64::EPSILON

@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use rand::{rngs::SmallRng, thread_rng, SeedableRng};
 use set_genome::{activations::Activation, Genome, Mutations, Parameters};
 
 pub fn crossover_same_genome_benchmark(c: &mut Criterion) {
@@ -40,8 +39,8 @@ pub fn crossover_highly_mutated_genomes_benchmark(c: &mut Criterion) {
     let mut genome_1 = Genome::initialized(&parameters);
 
     for _ in 0..100 {
-        genome_0.mutate(&parameters).expect("mutation");
-        genome_1.mutate(&parameters).expect("mutation");
+        genome_0.mutate();
+        genome_1.mutate();
     }
 
     c.bench_function("crossover highly mutated genomes", |b| {
@@ -74,15 +73,14 @@ pub fn mutate_genome_benchmark(c: &mut Criterion) {
 
     let mut genome = Genome::initialized(&parameters);
 
-    c.bench_function("mutate genome", |b| b.iter(|| genome.mutate(&parameters)));
+    c.bench_function("mutate genome", |b| b.iter(|| genome.mutate()));
 }
 
 pub fn add_node_to_genome_benchmark(c: &mut Criterion) {
     let genome = &mut Genome::initialized(&Parameters::default());
-    let rng = &mut SmallRng::from_rng(thread_rng()).unwrap();
 
     c.bench_function("add node to genome", |b| {
-        b.iter(|| Mutations::add_node(&Activation::all(), genome, rng))
+        b.iter(|| Mutations::add_node(&Activation::all(), genome))
     });
 }
 

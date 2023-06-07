@@ -5,10 +5,10 @@ use std::{
 
 use crate::{
     genes::{Connection, Genes, Id, Node},
-    parameters::Structure,
+    Parameters,
 };
 
-use rand::{rngs::SmallRng, seq::SliceRandom, thread_rng, Rng, SeedableRng};
+use fastrand::Rng;
 use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 
@@ -23,36 +23,69 @@ pub use compatibility_distance::CompatibilityDistance;
 /// More and more knowledge from there will find its way into this documentaion over time.
 ///
 /// [thesis]: https://www.silvan.codes/SET-NEAT_Thesis.pdf
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Genome {
     pub inputs: Genes<Node>,
     pub hidden: Genes<Node>,
     pub outputs: Genes<Node>,
     pub feed_forward: Genes<Connection>,
     pub recurrent: Genes<Connection>,
+    pub parameters: Parameters,
+    #[serde(skip, default = "fastrand::Rng::new")]
+    pub rng: Rng,
+}
+
+impl PartialEq for Genome {
+    fn eq(&self, other: &Self) -> bool {
+        self.inputs == other.inputs
+            && self.hidden == other.hidden
+            && self.outputs == other.outputs
+            && self.feed_forward == other.feed_forward
+            && self.recurrent == other.recurrent
+    }
+}
+
+impl Eq for Genome {}
+
+impl Hash for Genome {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inputs.hash(state);
+        self.hidden.hash(state);
+        self.outputs.hash(state);
+        self.feed_forward.hash(state);
+        self.recurrent.hash(state);
+    }
 }
 
 impl Genome {
     /// Creates a new genome according to the [`Structure`] it is given.
     /// It generates all necessary identities based on an RNG seeded from a hash of the I/O configuration of the structure.
     /// This allows genomes of identical I/O configuration to be crossed over in a meaningful way.
-    pub fn new(structure: &Structure) -> Self {
+    pub fn new(parameters: &Parameters) -> Self {
         let mut seed_hasher = SeaHasher::new();
-        structure.number_of_inputs.hash(&mut seed_hasher);
-        structure.number_of_outputs.hash(&mut seed_hasher);
-        structure.seed.hash(&mut seed_hasher);
+        parameters.structure.number_of_inputs.hash(&mut seed_hasher);
+        parameters
+            .structure
+            .number_of_outputs
+            .hash(&mut seed_hasher);
+        parameters.structure.seed.hash(&mut seed_hasher);
 
-        let mut rng = SmallRng::seed_from_u64(seed_hasher.finish());
+        let rng = fastrand::Rng::with_seed(seed_hasher.finish());
 
         Genome {
-            inputs: (0..structure.number_of_inputs)
-                .map(|order| Node::input(Id(rng.gen::<u64>()), order))
+            inputs: (0..parameters.structure.number_of_inputs)
+                .map(|order| Node::input(Id(rng.u64(..)), order))
                 .collect(),
-            outputs: (0..structure.number_of_outputs)
+            outputs: (0..parameters.structure.number_of_outputs)
                 .map(|order| {
-                    Node::output(Id(rng.gen::<u64>()), order, structure.outputs_activation)
+                    Node::output(
+                        Id(rng.u64(..)),
+                        order,
+                        parameters.structure.outputs_activation,
+                    )
                 })
                 .collect(),
+            parameters: parameters.clone(),
             ..Default::default()
         }
     }
@@ -78,21 +111,20 @@ impl Genome {
     }
 
     /// Initializes a genome, i.e. connects the in the [`Structure`] configured percent of inputs to all outputs by creating connection genes with random weights.
-    pub fn init(&mut self, structure: &Structure) {
-        let rng = &mut SmallRng::from_rng(thread_rng()).unwrap();
-
+    pub fn init(&mut self) {
         let mut possible_inputs = self.inputs.iter().collect::<Vec<_>>();
-        possible_inputs.shuffle(rng);
+        self.rng.shuffle(&mut possible_inputs);
 
         for input in possible_inputs.iter().take(
-            (structure.percent_of_connected_inputs * structure.number_of_inputs as f64).ceil()
-                as usize,
+            (self.parameters.structure.percent_of_connected_inputs
+                * self.parameters.structure.number_of_inputs as f64)
+                .ceil() as usize,
         ) {
             // connect to every output
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    Connection::weight_perturbation(0.0, 0.1, rng),
+                    Connection::weight_perturbation(0.0, 0.1, &self.rng),
                     output.id
                 )));
             }
@@ -115,11 +147,9 @@ impl Genome {
     /// Any structure not present in other is taken over unchanged from `self`.
     pub fn cross_in(&self, other: &Self) -> Self {
         // Instantiating an RNG for every call might slow things down.
-        let mut rng = SmallRng::from_rng(thread_rng()).unwrap();
-
-        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &mut rng);
-        let recurrent = self.recurrent.cross_in(&other.recurrent, &mut rng);
-        let hidden = self.hidden.cross_in(&other.hidden, &mut rng);
+        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &self.rng);
+        let recurrent = self.recurrent.cross_in(&other.recurrent, &self.rng);
+        let hidden = self.hidden.cross_in(&other.hidden, &self.rng);
 
         Genome {
             feed_forward,
@@ -266,7 +296,6 @@ impl Genome {
 mod tests {
     use std::hash::{Hash, Hasher};
 
-    use rand::thread_rng;
     use seahash::SeaHasher;
 
     use super::Genome;
@@ -384,14 +413,12 @@ mod tests {
         let mut genome_0 = Genome::initialized(&parameters);
         let mut genome_1 = Genome::initialized(&parameters);
 
-        let rng = &mut thread_rng();
-
         // mutate genome_0
-        Mutations::add_node(&Activation::all(), &mut genome_0, rng);
+        Mutations::add_node(&Activation::all(), &mut genome_0);
 
         // mutate genome_1
-        Mutations::add_node(&Activation::all(), &mut genome_1, rng);
-        Mutations::add_node(&Activation::all(), &mut genome_1, rng);
+        Mutations::add_node(&Activation::all(), &mut genome_1);
+        Mutations::add_node(&Activation::all(), &mut genome_1);
 
         // shorter genome is fitter genome
         let offspring = genome_0.cross_in(&genome_1);
@@ -672,7 +699,7 @@ mod tests {
         let mut genome = Genome::initialized(&parameters);
 
         for _ in 0..1000 {
-            genome.mutate(&parameters);
+            genome.mutate();
         }
 
         print!("{}", Genome::dot(&genome));

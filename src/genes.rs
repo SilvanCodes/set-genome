@@ -2,7 +2,7 @@
 //!
 //! The genome holds several fields with `Genes` of different types.
 
-use rand::{prelude::IteratorRandom, prelude::SliceRandom, Rng};
+use fastrand::Rng;
 use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -76,13 +76,13 @@ impl<T: Gene> DerefMut for Genes<T> {
 }
 
 impl<T: Gene> Genes<T> {
-    pub fn random(&self, rng: &mut impl Rng) -> Option<&T> {
-        self.iter().choose(rng)
+    pub fn random(&self, rng: &Rng) -> Option<&T> {
+        self.iter().skip(rng.usize(0..self.len())).take(1).next()
     }
 
-    pub fn drain_into_random(&mut self, rng: &mut impl Rng) -> impl Iterator<Item = T> {
+    pub fn drain_into_random(&mut self, rng: &Rng) -> impl Iterator<Item = T> {
         let mut random_vec = self.drain().collect::<Vec<T>>();
-        random_vec.shuffle(rng);
+        rng.shuffle(&mut random_vec);
         random_vec.into_iter()
     }
 
@@ -115,10 +115,10 @@ impl<T: Gene + Ord> Genes<T> {
 }
 
 impl<T: Gene + Clone> Genes<T> {
-    pub fn cross_in(&self, other: &Self, rng: &mut impl Rng) -> Self {
+    pub fn cross_in(&self, other: &Self, rng: &Rng) -> Self {
         self.iterate_matching_genes(other)
             .map(|(gene_self, gene_other)| {
-                if rng.gen::<f64>() < 0.5 {
+                if rng.f64() < 0.5 {
                     gene_self.clone()
                 } else {
                     gene_self.recombine(gene_other)

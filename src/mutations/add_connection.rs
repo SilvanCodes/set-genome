@@ -1,5 +1,3 @@
-use rand::{seq::SliceRandom, Rng};
-
 use crate::{genes::Connection, genome::Genome};
 
 use super::{MutationError, MutationResult, Mutations};
@@ -9,20 +7,20 @@ impl Mutations {
     /// It is possible when any two nodes[^details] are not yet connected with a feed-forward connection.
     ///
     /// [^details]: "any two nodes" is technically not correct as the start node for the connection has to come from the intersection of input and hidden nodes and the end node has to come from the intersection of the hidden and output nodes.
-    pub fn add_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
+    pub fn add_connection(genome: &mut Genome) -> MutationResult {
         let mut possible_start_nodes = genome
             .inputs
             .iter()
             .chain(genome.hidden.iter())
             .collect::<Vec<_>>();
-        possible_start_nodes.shuffle(rng);
+        genome.rng.shuffle(&mut possible_start_nodes);
 
         let mut possible_end_nodes = genome
             .hidden
             .iter()
             .chain(genome.outputs.iter())
             .collect::<Vec<_>>();
-        possible_end_nodes.shuffle(rng);
+        genome.rng.shuffle(&mut possible_end_nodes);
 
         for start_node in possible_start_nodes {
             if let Some(end_node) = possible_end_nodes.iter().cloned().find(|&end_node| {
@@ -37,7 +35,7 @@ impl Mutations {
                 // add new feed-forward connection
                 assert!(genome.feed_forward.insert(Connection::new(
                     start_node.id,
-                    Connection::weight_perturbation(0.0, 0.1, rng),
+                    Connection::weight_perturbation(0.0, 0.1, &genome.rng),
                     end_node.id,
                 )));
                 return Ok(());
@@ -50,15 +48,13 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use rand::thread_rng;
-
     use crate::{Genome, MutationError, Mutations, Parameters};
 
     #[test]
     fn add_random_connection() {
         let mut genome = Genome::uninitialized(&Parameters::default());
 
-        assert!(Mutations::add_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::add_connection(&mut genome).is_ok());
         assert_eq!(genome.feed_forward.len(), 1);
     }
 
@@ -66,9 +62,9 @@ mod tests {
     fn dont_add_same_connection_twice() {
         let mut genome = Genome::uninitialized(&Parameters::default());
 
-        Mutations::add_connection(&mut genome, &mut thread_rng()).expect("add_connection");
+        Mutations::add_connection(&mut genome).expect("add_connection");
 
-        if let Err(error) = Mutations::add_connection(&mut genome, &mut thread_rng()) {
+        if let Err(error) = Mutations::add_connection(&mut genome) {
             assert_eq!(error, MutationError::CouldNotAddFeedForwardConnection);
         } else {
             unreachable!()

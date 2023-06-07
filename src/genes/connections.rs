@@ -1,4 +1,4 @@
-use rand::Rng;
+use fastrand::Rng;
 use seahash::SeaHasher;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -42,14 +42,13 @@ impl Connection {
         Id(id_hasher.finish())
     }
 
-    pub fn perturb_weight(&mut self, standard_deviation: f64, rng: &mut impl Rng) {
+    pub fn perturb_weight(&mut self, standard_deviation: f64, rng: &Rng) {
         self.weight = Self::weight_perturbation(self.weight, standard_deviation, rng);
     }
 
-    pub fn weight_perturbation(weight: f64, standard_deviation: f64, rng: &mut impl Rng) -> f64 {
+    pub fn weight_perturbation(weight: f64, standard_deviation: f64, rng: &Rng) -> f64 {
         // approximatly normal distributed sample, see: https://en.wikipedia.org/wiki/Irwin%E2%80%93Hall_distribution#Approximating_a_Normal_distribution
-        let mut perturbation =
-            ((0..12).map(|_| rng.gen::<f64>()).sum::<f64>() - 6.0) * standard_deviation;
+        let mut perturbation = ((0..12).map(|_| rng.f64()).sum::<f64>() - 6.0) * standard_deviation;
 
         while (weight + perturbation) > 1.0 || (weight + perturbation) < -1.0 {
             perturbation = -perturbation / 2.0;

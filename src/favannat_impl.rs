@@ -112,7 +112,7 @@ mod tests {
         let mut genome = Genome::initialized(&parameters);
 
         for _ in 0..100 {
-            genome.mutate(&parameters);
+            genome.mutate();
         }
 
         let mut evaluator = MatrixRecurrentFabricator::fabricate(&genome).expect("not okay");

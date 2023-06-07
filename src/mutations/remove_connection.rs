@@ -1,5 +1,3 @@
-use rand::Rng;
-
 use crate::Genome;
 
 use super::{MutationError, MutationResult, Mutations};
@@ -8,14 +6,14 @@ impl Mutations {
     /// Removes a connection, should this be possible without introducing dangling structure.
     /// Dangling means the in- or out-degree of any hidden node is zero, i.e. it neither can receive nor propagate a signal.
     /// If it is not possible, no connection will be removed.
-    pub fn remove_connection(genome: &mut Genome, rng: &mut impl Rng) -> MutationResult {
+    pub fn remove_connection(genome: &mut Genome) -> MutationResult {
         if let Some(removable_connection) = &genome
             .feed_forward
             .iter()
             // make iterator wrap
             .cycle()
-            // randomly offset into the iterator to choose any node
-            .skip((rng.gen::<f64>() * (genome.feed_forward.len()) as f64).floor() as usize)
+            // randomly offset into the iterator to choose any connection
+            .skip(genome.rng.usize(0..=genome.feed_forward.len()))
             // just loop every value once
             .take(genome.feed_forward.len())
             .find(|removal_candidate| {
@@ -35,8 +33,6 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use rand::thread_rng;
-
     use crate::{
         activations::Activation,
         genes::{Connection, Genes, Id, Node},
@@ -73,7 +69,7 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(Mutations::remove_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::remove_connection(&mut genome).is_ok());
     }
 
     #[test]
@@ -95,7 +91,7 @@ mod tests {
             ..Default::default()
         };
 
-        if let Err(error) = Mutations::remove_connection(&mut genome, &mut thread_rng()) {
+        if let Err(error) = Mutations::remove_connection(&mut genome) {
             assert_eq!(error, MutationError::CouldNotRemoveFeedForwardConnection);
         } else {
             unreachable!()

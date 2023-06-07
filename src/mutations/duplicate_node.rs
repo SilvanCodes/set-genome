@@ -1,5 +1,3 @@
-use rand::Rng;
-
 use crate::{genes::Node, genome::Genome, MutationError};
 
 use super::Mutations;
@@ -10,9 +8,9 @@ impl Mutations {
     /// The weight of all outgoing connections is half the initial weight so the mutation starts out functionally equivalent to the genome without the mutation.
     /// By duplicating a node and its connections small local symetry can develop.
     /// It draws inspiration from the concept of gene duplication and cell division.
-    pub fn duplicate_node(genome: &mut Genome, rng: &mut impl Rng) -> Result<(), MutationError> {
+    pub fn duplicate_node(genome: &mut Genome) -> Result<(), MutationError> {
         // select an hiddden node gene to duplicate
-        if let Some(mut random_hidden_node) = genome.hidden.random(rng).cloned() {
+        if let Some(mut random_hidden_node) = genome.hidden.random(&genome.rng).cloned() {
             let mut id = random_hidden_node.next_id();
 
             // avoid id collisions, will cause some kind of "divergent evolution" eventually
@@ -136,8 +134,6 @@ impl Mutations {
 
 #[cfg(test)]
 mod tests {
-    use rand::thread_rng;
-
     use crate::{activations::Activation, Genome, Mutations, Parameters};
 
     #[test]
@@ -145,20 +141,20 @@ mod tests {
         let mut genome = Genome::initialized(&Parameters::default());
         assert_eq!(genome.feed_forward.len(), 1);
 
-        Mutations::add_node(&Activation::all(), &mut genome, &mut thread_rng());
+        Mutations::add_node(&Activation::all(), &mut genome);
         assert_eq!(genome.hidden.len(), 1);
         assert_eq!(genome.feed_forward.len(), 3);
 
         // create all possible recurrent connections
-        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
-        assert!(Mutations::add_recurrent_connection(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome,).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome,).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome,).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome,).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome,).is_ok());
+        assert!(Mutations::add_recurrent_connection(&mut genome,).is_ok());
         assert_eq!(genome.recurrent.len(), 6);
 
-        assert!(Mutations::duplicate_node(&mut genome, &mut thread_rng()).is_ok());
+        assert!(Mutations::duplicate_node(&mut genome).is_ok());
 
         println!("{}", Genome::dot(&genome));
 
@@ -172,11 +168,11 @@ mod tests {
         let mut genome1 = Genome::initialized(&Parameters::default());
         let mut genome2 = Genome::initialized(&Parameters::default());
 
-        Mutations::add_node(&Activation::all(), &mut genome1, &mut thread_rng());
-        assert!(Mutations::duplicate_node(&mut genome1, &mut thread_rng()).is_ok());
+        Mutations::add_node(&Activation::all(), &mut genome1);
+        assert!(Mutations::duplicate_node(&mut genome1).is_ok());
 
-        Mutations::add_node(&Activation::all(), &mut genome2, &mut thread_rng());
-        assert!(Mutations::duplicate_node(&mut genome2, &mut thread_rng()).is_ok());
+        Mutations::add_node(&Activation::all(), &mut genome2);
+        assert!(Mutations::duplicate_node(&mut genome2).is_ok());
 
         assert_eq!(genome1.hidden, genome2.hidden);
     }
