@@ -10,7 +10,11 @@ impl Mutations {
     /// The connection leading into the new node is of weight 1.0 and the connection originating from the new node has the same weight as the split connection (before it is zeroed).
     pub fn add_node(activation_pool: &[Activation], genome: &mut Genome) {
         // select an connection gene and split
-        let mut random_connection = genome.feed_forward.random(&genome.rng).cloned().unwrap();
+        let mut random_connection = genome
+            .feed_forward
+            .random(&mut genome.rng)
+            .cloned()
+            .unwrap();
 
         let mut id = random_connection.next_id();
 
@@ -20,16 +24,7 @@ impl Mutations {
         }
 
         // construct new node gene
-        let new_node = Node::hidden(
-            id,
-            activation_pool
-                .iter()
-                .skip(genome.rng.usize(0..activation_pool.len()))
-                .take(1)
-                .next()
-                .cloned()
-                .unwrap(),
-        );
+        let new_node = Node::hidden(id, genome.rng.choice(activation_pool).cloned().unwrap());
 
         // insert new connection pointing to new node
         assert!(genome.feed_forward.insert(Connection::new(

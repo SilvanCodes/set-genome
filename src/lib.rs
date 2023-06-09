@@ -14,7 +14,7 @@
 //! let mut genome = Genome::initialized(&parameters);
 //!
 //! // Mutate a genome.
-//! genome.mutate(&parameters);
+//! genome.mutate();
 //!
 //! // Get a phenotype of the genome.
 //! let network = MatrixFeedforwardFabricator::fabricate(&genome).expect("Cool network.");
@@ -185,7 +185,7 @@ impl Genome {
     /// let mut genome = Genome::initialized(&parameters);
     ///
     /// // Randomly mutate the genome according to the available mutations listed in the parameters of the context and their corresponding chances .
-    /// genome.mutate(&parameters);
+    /// genome.mutate();
     /// ```
     ///
     pub fn mutate(&mut self) -> MutationResult {

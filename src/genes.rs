@@ -76,11 +76,11 @@ impl<T: Gene> DerefMut for Genes<T> {
 }
 
 impl<T: Gene> Genes<T> {
-    pub fn random(&self, rng: &Rng) -> Option<&T> {
-        self.iter().skip(rng.usize(0..self.len())).take(1).next()
+    pub fn random(&self, rng: &mut Rng) -> Option<&T> {
+        rng.choice(self.iter())
     }
 
-    pub fn drain_into_random(&mut self, rng: &Rng) -> impl Iterator<Item = T> {
+    pub fn drain_into_random(&mut self, rng: &mut Rng) -> impl Iterator<Item = T> {
         let mut random_vec = self.drain().collect::<Vec<T>>();
         rng.shuffle(&mut random_vec);
         random_vec.into_iter()
@@ -115,7 +115,7 @@ impl<T: Gene + Ord> Genes<T> {
 }
 
 impl<T: Gene + Clone> Genes<T> {
-    pub fn cross_in(&self, other: &Self, rng: &Rng) -> Self {
+    pub fn cross_in(&self, other: &Self, rng: &mut Rng) -> Self {
         self.iterate_matching_genes(other)
             .map(|(gene_self, gene_other)| {
                 if rng.f64() < 0.5 {

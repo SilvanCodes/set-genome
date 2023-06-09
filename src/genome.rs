@@ -70,7 +70,7 @@ impl Genome {
             .hash(&mut seed_hasher);
         parameters.structure.seed.hash(&mut seed_hasher);
 
-        let rng = fastrand::Rng::with_seed(seed_hasher.finish());
+        let mut rng = fastrand::Rng::with_seed(seed_hasher.finish());
 
         Genome {
             inputs: (0..parameters.structure.number_of_inputs)
@@ -124,7 +124,7 @@ impl Genome {
             for output in self.outputs.iter() {
                 assert!(self.feed_forward.insert(Connection::new(
                     input.id,
-                    Connection::weight_perturbation(0.0, 0.1, &self.rng),
+                    Connection::weight_perturbation(0.0, 0.1, &mut self.rng),
                     output.id
                 )));
             }
@@ -146,10 +146,12 @@ impl Genome {
     /// For node genes present in both genomes flip a coin to determine the activation function inside the new genome.
     /// Any structure not present in other is taken over unchanged from `self`.
     pub fn cross_in(&self, other: &Self) -> Self {
+        let mut rng = fastrand::Rng::new();
+
         // Instantiating an RNG for every call might slow things down.
-        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &self.rng);
-        let recurrent = self.recurrent.cross_in(&other.recurrent, &self.rng);
-        let hidden = self.hidden.cross_in(&other.hidden, &self.rng);
+        let feed_forward = self.feed_forward.cross_in(&other.feed_forward, &mut rng);
+        let recurrent = self.recurrent.cross_in(&other.recurrent, &mut rng);
+        let hidden = self.hidden.cross_in(&other.hidden, &mut rng);
 
         Genome {
             feed_forward,
@@ -158,6 +160,7 @@ impl Genome {
             // use input and outputs from fitter, but they should be identical with weaker
             inputs: self.inputs.clone(),
             outputs: self.outputs.clone(),
+            rng,
             ..Default::default()
         }
     }

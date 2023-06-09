@@ -6,15 +6,8 @@ impl Mutations {
     /// Removes a recurrent connection if at least one is present in the genome.
     /// Does nothing when no recurrent connections exist.
     pub fn remove_recurrent_connection(genome: &mut Genome) -> MutationResult {
-        if let Some(removable_connection) = &genome
-            .recurrent
-            .iter()
-            .cycle()
-            .skip(genome.rng.usize(0..=genome.recurrent.len()))
-            .cloned()
-            .next()
-        {
-            assert!(genome.recurrent.remove(removable_connection));
+        if let Some(removable_connection) = genome.recurrent.random(&mut genome.rng).cloned() {
+            assert!(genome.recurrent.remove(&removable_connection));
             Ok(())
         } else {
             Err(MutationError::CouldNotRemoveRecurrentConnection)

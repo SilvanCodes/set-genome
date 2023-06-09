@@ -11,11 +11,11 @@ impl Mutations {
 
         genome.feed_forward = genome
             .feed_forward
-            .drain_into_random(&genome.rng)
+            .drain_into_random(&mut genome.rng)
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_feed_forward_amount {
-                    connection.perturb_weight(standard_deviation, &genome.rng);
+                    connection.perturb_weight(standard_deviation, &mut genome.rng);
                 }
                 connection
             })
@@ -23,11 +23,11 @@ impl Mutations {
 
         genome.recurrent = genome
             .recurrent
-            .drain_into_random(&genome.rng)
+            .drain_into_random(&mut genome.rng)
             .enumerate()
             .map(|(index, mut connection)| {
                 if index < change_recurrent_amount {
-                    connection.perturb_weight(standard_deviation, &genome.rng);
+                    connection.perturb_weight(standard_deviation, &mut genome.rng);
                 }
                 connection
             })

@@ -7,15 +7,12 @@ impl Mutations {
     /// Dangling means the in- or out-degree of any hidden node is zero, i.e. it neither can receive nor propagate a signal.
     /// If it is not possible, no node will be removed.
     pub fn remove_node(genome: &mut Genome) -> MutationResult {
-        if let Some(removable_node) = &genome
-            .hidden
-            .iter()
-            // make iterator wrap
-            .cycle()
-            // randomly offset into the iterator to choose any node
-            .skip(genome.rng.usize(0..=genome.hidden.len()))
-            // just loop every value once
-            .take(genome.hidden.len())
+        let mut hidden_nodes = genome.hidden.iter().collect::<Vec<_>>();
+
+        genome.rng.shuffle(&mut hidden_nodes);
+
+        if let Some(removable_node) = hidden_nodes
+            .into_iter()
             .find(|removal_candidate| {
                 genome
                     .connections()
@@ -53,7 +50,7 @@ impl Mutations {
                 connection.input != removable_node.id && connection.output != removable_node.id
             });
             // remove the node to be removed
-            assert!(genome.hidden.remove(removable_node));
+            assert!(genome.hidden.remove(&removable_node));
             Ok(())
         } else {
             Err(MutationError::CouldNotRemoveNode)

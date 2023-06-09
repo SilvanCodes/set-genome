@@ -7,15 +7,12 @@ impl Mutations {
     /// Dangling means the in- or out-degree of any hidden node is zero, i.e. it neither can receive nor propagate a signal.
     /// If it is not possible, no connection will be removed.
     pub fn remove_connection(genome: &mut Genome) -> MutationResult {
-        if let Some(removable_connection) = &genome
-            .feed_forward
-            .iter()
-            // make iterator wrap
-            .cycle()
-            // randomly offset into the iterator to choose any connection
-            .skip(genome.rng.usize(0..=genome.feed_forward.len()))
-            // just loop every value once
-            .take(genome.feed_forward.len())
+        let mut feedforward_connections = genome.feed_forward.iter().collect::<Vec<_>>();
+
+        genome.rng.shuffle(&mut feedforward_connections);
+
+        if let Some(removable_connection) = feedforward_connections
+            .into_iter()
             .find(|removal_candidate| {
                 genome.has_alternative_input(removal_candidate.output, removal_candidate.input)
                     && genome
@@ -23,7 +20,7 @@ impl Mutations {
             })
             .cloned()
         {
-            assert!(genome.feed_forward.remove(removable_connection));
+            assert!(genome.feed_forward.remove(&removable_connection));
             Ok(())
         } else {
             Err(MutationError::CouldNotRemoveFeedForwardConnection)

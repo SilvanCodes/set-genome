@@ -31,7 +31,7 @@ impl Mutations {
             }) {
                 assert!(genome.recurrent.insert(Connection::new(
                     start_node.id,
-                    Connection::weight_perturbation(0.0, 0.1, &genome.rng),
+                    Connection::weight_perturbation(0.0, 0.1, &mut genome.rng),
                     end_node.id,
                 )));
                 return Ok(());

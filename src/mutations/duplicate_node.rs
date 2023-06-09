@@ -10,7 +10,7 @@ impl Mutations {
     /// It draws inspiration from the concept of gene duplication and cell division.
     pub fn duplicate_node(genome: &mut Genome) -> Result<(), MutationError> {
         // select an hiddden node gene to duplicate
-        if let Some(mut random_hidden_node) = genome.hidden.random(&genome.rng).cloned() {
+        if let Some(mut random_hidden_node) = genome.hidden.random(&mut genome.rng).cloned() {
             let mut id = random_hidden_node.next_id();
 
             // avoid id collisions, will cause some kind of "divergent evolution" eventually
